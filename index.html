@@ -194,6 +194,13 @@
       gap: 8px;
     }
 
+    .app-version {
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
     .text-btn {
       border: 0;
       background: none;
@@ -222,6 +229,10 @@
       justify-content: space-between;
       gap: 20px;
       margin-bottom: 28px;
+    }
+
+    .mobile-quick-nav {
+      display: none;
     }
 
     .page-kicker {
@@ -1381,6 +1392,30 @@
         padding: 24px 18px 48px;
       }
 
+      .mobile-quick-nav {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        margin: -8px 0 18px;
+      }
+
+      .mobile-quick-nav button {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .mobile-quick-nav button.active {
+        color: var(--surface);
+        background: var(--ink);
+        border-color: var(--ink);
+      }
+
       .hero-inner {
         flex-direction: column;
       }
@@ -1460,6 +1495,7 @@
       </nav>
 
       <div class="sidebar-footer">
+        <span class="app-version" id="appVersion">日行一页 v1.0.0</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -1491,11 +1527,12 @@
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
+    const APP_VERSION = "v1.0.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     const SUPABASE_STATE_ID = "main";
     const todayKey = localDateKey(new Date());
-    let state = { goals: [], plans: [], logs: [], schedules: [] };
+    let state = { goals: [], plans: [], logs: [], schedules: [], meta: {} };
 
     let currentView = "today";
     let plansFilter = "active";
@@ -1588,7 +1625,8 @@
               }))
             : [],
           logs: Array.isArray(parsed.logs) ? parsed.logs : [],
-          schedules: Array.isArray(parsed.schedules) ? parsed.schedules : []
+          schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
+          meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
         };
       } catch (error) {
         return loadState();
@@ -1623,11 +1661,12 @@
       autoImportCourseScheduleOnce();
       autoGenerateHomeworkPlansOnce();
       autoGenerateCet6PlanOnce();
+      persistStateToCloud();
       render();
     }
 
     function loadState() {
-      const fallback = { goals: [], plans: [], logs: [], schedules: [] };
+      const fallback = { goals: [], plans: [], logs: [], schedules: [], meta: {} };
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return fallback;
@@ -1643,7 +1682,8 @@
                 }))
             : [],
           logs: Array.isArray(parsed.logs) ? parsed.logs : [],
-          schedules: Array.isArray(parsed.schedules) ? parsed.schedules : []
+          schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
+          meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
         };
       } catch (error) {
         return fallback;
@@ -1871,6 +1911,13 @@
           </div>
           <button class="primary-btn" data-open="log">＋ 写一条日志</button>
         </header>
+
+        <nav class="mobile-quick-nav" aria-label="手机端快速导航">
+          <button class="active" data-goto="today">今天</button>
+          <button data-goto="plans">计划</button>
+          <button data-goto="logs">日志</button>
+          <button data-goto="schedule">日程</button>
+        </nav>
 
         <section class="hero">
           <div class="hero-inner">
@@ -3222,8 +3269,10 @@
 
     function importCourseSchedule() {
       const added = mergeCourseScheduleEntries(buildCourseScheduleEntries());
+      state.meta = { ...state.meta, courseImported: true };
       if (!added) {
         showToast("课程表已经导入，无需重复导入");
+        saveState();
         return;
       }
       saveState();
@@ -3231,10 +3280,9 @@
     }
 
     function autoImportCourseScheduleOnce() {
-      const flagKey = "daypage_course_imported_v1";
-      if (localStorage.getItem(flagKey)) return;
+      if (state.meta?.courseImported) return;
       const added = mergeCourseScheduleEntries(buildCourseScheduleEntries());
-      localStorage.setItem(flagKey, "1");
+      state.meta = { ...state.meta, courseImported: true };
       if (added) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -3282,8 +3330,10 @@
 
     function generateHomeworkPlans() {
       const added = mergeHomeworkPlans(buildHomeworkPlansFromSchedule());
+      state.meta = { ...state.meta, homeworkGenerated: true };
       if (!added) {
         showToast("作业计划已经生成，无需重复生成");
+        saveState();
         return;
       }
       saveState();
@@ -3291,10 +3341,9 @@
     }
 
     function autoGenerateHomeworkPlansOnce() {
-      const flagKey = "daypage_homework_generated_v1";
-      if (localStorage.getItem(flagKey)) return;
+      if (state.meta?.homeworkGenerated) return;
       const added = mergeHomeworkPlans(buildHomeworkPlansFromSchedule());
-      localStorage.setItem(flagKey, "1");
+      state.meta = { ...state.meta, homeworkGenerated: true };
       if (added) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
@@ -3372,8 +3421,10 @@
 
     function generateCet6Plan() {
       const added = mergeCet6Plans(buildCet6PlanEntries());
+      state.meta = { ...state.meta, cet6Generated: true };
       if (!added) {
         showToast("六级计划已经生成，无需重复生成");
+        saveState();
         return;
       }
       saveState();
@@ -3381,10 +3432,9 @@
     }
 
     function autoGenerateCet6PlanOnce() {
-      const flagKey = "daypage_cet6_plan_v1";
-      if (localStorage.getItem(flagKey)) return;
+      if (state.meta?.cet6Generated) return;
       const added = mergeCet6Plans(buildCet6PlanEntries());
-      localStorage.setItem(flagKey, "1");
+      state.meta = { ...state.meta, cet6Generated: true };
       if (added) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
