@@ -201,6 +201,14 @@
       letter-spacing: 0.04em;
     }
 
+    .parent-banner {
+      padding: 9px 16px;
+      background: var(--ink);
+      color: var(--surface);
+      font-size: 13px;
+      text-align: center;
+    }
+
     .text-btn {
       border: 0;
       background: none;
@@ -486,6 +494,11 @@
     .list {
       display: grid;
       gap: 12px;
+    }
+
+    .load-more {
+      margin-top: 12px;
+      width: 100%;
     }
 
     .item {
@@ -796,6 +809,14 @@
     .log-body {
       color: #2c3933;
       white-space: pre-wrap;
+    }
+
+    .log-image {
+      max-width: 100%;
+      max-height: 240px;
+      margin-top: 10px;
+      border-radius: 12px;
+      object-fit: cover;
     }
 
     .mood {
@@ -1487,6 +1508,16 @@
           <span>日程</span>
           <span class="nav-count" data-count="schedule">0</span>
         </button>
+        <button class="nav-btn" data-view="checklists">
+          <span class="nav-dot"></span>
+          <span>清单</span>
+          <span class="nav-count" data-count="checklists">0</span>
+        </button>
+        <button class="nav-btn" data-view="links">
+          <span class="nav-dot"></span>
+          <span>收藏</span>
+          <span class="nav-count" data-count="links">0</span>
+        </button>
         <button class="nav-btn" data-view="logs">
           <span class="nav-dot"></span>
           <span>日志</span>
@@ -1501,6 +1532,7 @@
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
         <button class="text-btn" id="generateHomeworkBtn">生成作业计划</button>
         <button class="text-btn" id="generateCet6Btn">生成六级计划</button>
+        <button class="text-btn" id="copyParentLinkBtn">复制家长链接</button>
         <button class="text-btn" id="sampleBtn">填入示例数据</button>
         <input type="file" id="importFile" accept="application/json" class="hidden">
       </div>
@@ -1532,7 +1564,7 @@
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     const SUPABASE_STATE_ID = "main";
     const todayKey = localDateKey(new Date());
-    let state = { goals: [], plans: [], logs: [], schedules: [], meta: {} };
+    let state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
 
     let currentView = "today";
     let plansFilter = "active";
@@ -1540,6 +1572,7 @@
     let plansGoalFilter = "";
     let plansSort = "date";
     let plansSearch = "";
+    let plansVisibleCount = 50;
     let logsQuery = "";
     let scheduleView = "week";
     let scheduleWeekOffset = 0;
@@ -1597,6 +1630,7 @@
     document.getElementById("importCourseBtn").addEventListener("click", importCourseSchedule);
     document.getElementById("generateHomeworkBtn").addEventListener("click", generateHomeworkPlans);
     document.getElementById("generateCet6Btn").addEventListener("click", generateCet6Plan);
+    document.getElementById("copyParentLinkBtn").addEventListener("click", copyParentLink);
     document.getElementById("sampleBtn").addEventListener("click", loadSampleData);
 
     initApp();
@@ -1626,6 +1660,8 @@
             : [],
           logs: Array.isArray(parsed.logs) ? parsed.logs : [],
           schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
+          checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
+          links: Array.isArray(parsed.links) ? parsed.links : [],
           meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
         };
       } catch (error) {
@@ -1657,16 +1693,29 @@
     async function initApp() {
       state = await loadCloudState();
       parentMode = new URLSearchParams(location.search).has("parent");
-      if (parentMode) document.body.classList.add("parent-mode");
+      if (parentMode) {
+        document.body.classList.add("parent-mode");
+        const banner = document.createElement("div");
+        banner.className = "parent-banner";
+        banner.textContent = "家长只读模式 · 数据实时来自孩子";
+        document.body.prepend(banner);
+      }
       autoImportCourseScheduleOnce();
       autoGenerateHomeworkPlansOnce();
       autoGenerateCet6PlanOnce();
       persistStateToCloud();
       render();
+      if (parentMode) {
+        setInterval(async () => {
+          const freshState = await loadCloudState();
+          state = freshState;
+          render();
+        }, 15000);
+      }
     }
 
     function loadState() {
-      const fallback = { goals: [], plans: [], logs: [], schedules: [], meta: {} };
+      const fallback = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return fallback;
@@ -1683,6 +1732,8 @@
             : [],
           logs: Array.isArray(parsed.logs) ? parsed.logs : [],
           schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
+          checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
+          links: Array.isArray(parsed.links) ? parsed.links : [],
           meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
         };
       } catch (error) {
@@ -1875,6 +1926,8 @@
       if (currentView === "goals") renderGoals();
       if (currentView === "plans") renderPlans();
       if (currentView === "schedule") renderSchedule();
+      if (currentView === "checklists") renderChecklists();
+      if (currentView === "links") renderLinks();
       if (currentView === "logs") renderLogs();
     }
 
@@ -1884,6 +1937,8 @@
         goals: state.goals.length,
         plans: activePlans().length,
         schedule: todaySchedules().length,
+        checklists: state.checklists.length,
+        links: state.links.length,
         logs: state.logs.length
       };
       document.querySelectorAll("[data-count]").forEach((el) => {
@@ -2110,7 +2165,8 @@
     }
 
     function renderPlans() {
-      const visible = filteredPlans();
+      const allVisible = filteredPlans();
+      const visible = allVisible.slice(0, plansVisibleCount);
       main.innerHTML = `
         <header class="topbar">
           <div>
@@ -2149,7 +2205,14 @@
 
         ${
           visible.length
-            ? `<div class="list">${visible.map(planItem).join("")}</div>`
+            ? `
+              <div class="list">${visible.map(planItem).join("")}</div>
+              ${
+                allVisible.length > plansVisibleCount
+                  ? `<button class="ghost-btn load-more" id="loadMorePlans">显示更多 · 还剩 ${allVisible.length - plansVisibleCount} 条</button>`
+                  : ""
+              }
+            `
             : `<div class="card"><div class="empty"><div><strong>这里还没有计划</strong>把目标拆成明天、本周或今天能做的事。<br><button class="primary-btn" data-open="plan">添加第一条计划</button></div></div></div>`
         }
       `;
@@ -2157,6 +2220,7 @@
       const planSearch = document.getElementById("planSearch");
       planSearch?.addEventListener("input", () => {
         plansGoalFilter = "";
+        plansVisibleCount = 50;
         plansSearch = planSearch.value;
         renderPlans();
       });
@@ -2167,21 +2231,29 @@
       const planDateFilter = document.getElementById("planDateFilter");
       planDateFilter?.addEventListener("change", () => {
         plansGoalFilter = "";
+        plansVisibleCount = 50;
         plansDate = planDateFilter.value;
         plansFilter = plansDate ? "date" : "active";
         renderPlans();
       });
       document.getElementById("planSortSelect")?.addEventListener("change", (event) => {
+        plansVisibleCount = 50;
         plansSort = event.target.value;
+        renderPlans();
+      });
+      document.getElementById("loadMorePlans")?.addEventListener("click", () => {
+        plansVisibleCount += 50;
         renderPlans();
       });
       document.querySelector("[data-clear-goal-filter]")?.addEventListener("click", () => {
         plansGoalFilter = "";
+        plansVisibleCount = 50;
         renderPlans();
       });
       document.querySelectorAll("[data-filter]").forEach((chip) => {
         chip.addEventListener("click", () => {
           plansGoalFilter = "";
+          plansVisibleCount = 50;
           plansFilter = chip.dataset.filter;
           if (plansFilter !== "date") plansDate = "";
           renderPlans();
@@ -2484,6 +2556,90 @@
       `;
     }
 
+    function renderChecklists() {
+      const todayItems = state.checklists.filter((item) => !item.date || item.date === todayKey || (item.date && item.date < todayKey));
+      main.innerHTML = `
+        <header class="topbar">
+          <div>
+            <p class="page-kicker">Checklist</p>
+            <h1 class="page-title">注意事项清单</h1>
+          </div>
+          <button class="primary-btn" data-open="checklist">＋ 添加事项</button>
+        </header>
+        <div class="list">
+          ${
+            todayItems.length
+              ? todayItems.map(checklistItem).join("")
+              : `<div class="card"><div class="empty"><div><strong>还没有注意事项</strong>例如：考试要带学生证。</div></div></div>`
+          }
+        </div>
+      `;
+    }
+
+    function checklistItem(item) {
+      return `
+        <article class="item ${item.done ? "is-done" : ""}">
+          <div class="item-main">
+            <button class="check ${item.done ? "checked" : ""}" data-toggle-checklist="${item.id}" aria-label="切换完成"></button>
+            <div style="min-width:0;">
+              <h3 class="item-title">${escapeHtml(item.title)}</h3>
+              ${item.note ? `<p class="item-note">${escapeHtml(item.note)}</p>` : ""}
+            </div>
+            <div class="item-actions">
+              <button class="icon-btn" data-edit="checklist" data-id="${item.id}" aria-label="编辑">✎</button>
+              <button class="icon-btn" data-delete="checklist" data-id="${item.id}" aria-label="删除">🗑</button>
+            </div>
+          </div>
+          <div class="item-meta">
+            <span>${item.date ? formatDate(item.date) : "长期有效"}</span>
+            <span class="tag priority-${item.priority || "normal"}">${priorityLabel(item.priority)}</span>
+            ${item.parentVisible ? `<span class="tag">家长可见</span>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderLinks() {
+      main.innerHTML = `
+        <header class="topbar">
+          <div>
+            <p class="page-kicker">Links</p>
+            <h1 class="page-title">收藏链接</h1>
+          </div>
+          <button class="primary-btn" data-open="link">＋ 添加链接</button>
+        </header>
+        <div class="list">
+          ${
+            state.links.length
+              ? state.links.map(linkItem).join("")
+              : `<div class="card"><div class="empty"><div><strong>还没有收藏链接</strong>可以保存常用网址。</div></div></div>`
+          }
+        </div>
+      `;
+    }
+
+    function linkItem(item) {
+      return `
+        <article class="item">
+          <div class="item-main">
+            <div style="min-width:0;">
+              <h3 class="item-title">${escapeHtml(item.title)}</h3>
+              <p class="item-note">${escapeHtml(item.url)}</p>
+            </div>
+            <div class="item-actions">
+              <a class="icon-btn" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">↗</a>
+              <button class="icon-btn" data-edit="link" data-id="${item.id}" aria-label="编辑">✎</button>
+              <button class="icon-btn" data-delete="link" data-id="${item.id}" aria-label="删除">🗑</button>
+            </div>
+          </div>
+          <div class="item-meta">
+            <span class="tag">${escapeHtml(item.category || "其他")}</span>
+            ${item.parentVisible ? `<span class="tag">家长可见</span>` : ""}
+          </div>
+        </article>
+      `;
+    }
+
     function renderLogs() {
       const logs = filteredLogs();
       main.innerHTML = `
@@ -2531,6 +2687,7 @@
             <div style="min-width:0;">
               <h3 class="item-title">${escapeHtml(log.title)}</h3>
               ${log.body ? `<p class="log-body">${escapeHtml(log.body)}</p>` : ""}
+              ${log.imageUrl ? `<img class="log-image" src="${escapeHtml(log.imageUrl)}" alt="">` : ""}
             </div>
             <div class="item-actions">
               <button class="icon-btn" data-edit="log" data-id="${log.id}" aria-label="编辑">✎</button>
@@ -2580,6 +2737,9 @@
 
       const focusId = target.closest("[data-toggle-focus]")?.dataset.toggleFocus;
       if (focusId) return togglePlanFocus(focusId);
+
+      const checklistId = target.closest("[data-toggle-checklist]")?.dataset.toggleChecklist;
+      if (checklistId) return toggleChecklist(checklistId);
 
       const stepToggle = target.closest("[data-toggle-step]");
       if (stepToggle) return togglePlanStep(stepToggle.dataset.toggleStep, stepToggle.dataset.stepId);
@@ -2675,8 +2835,8 @@
       if (!keepStack) dialogStack = [];
       dialogType = type;
       editing = id ? findItem(type, id) : null;
-      const titles = { goal: "新建目标", plan: "添加计划", schedule: "添加日程", log: "写日志" };
-      const editTitles = { goal: "编辑目标", plan: "编辑计划", schedule: "编辑日程", log: "编辑日志" };
+      const titles = { goal: "新建目标", plan: "添加计划", schedule: "添加日程", checklist: "添加事项", link: "添加链接", log: "写日志" };
+      const editTitles = { goal: "编辑目标", plan: "编辑计划", schedule: "编辑日程", checklist: "编辑事项", link: "编辑链接", log: "编辑日志" };
       dialogTitle.textContent = id ? editTitles[type] : titles[type];
       dialogForm.innerHTML = formMarkup(type, editing || {});
       if (type === "goal") {
@@ -2701,7 +2861,7 @@
     }
 
     function findItem(type, id) {
-      const collection = type === "goal" ? state.goals : type === "plan" ? state.plans : type === "schedule" ? state.schedules : state.logs;
+      const collection = type === "goal" ? state.goals : type === "plan" ? state.plans : type === "schedule" ? state.schedules : type === "checklist" ? state.checklists : type === "link" ? state.links : state.logs;
       return collection.find((item) => item.id === id) || null;
     }
 
@@ -2938,6 +3098,67 @@
         `;
       }
 
+      if (type === "checklist") {
+        return `
+          <div class="field">
+            <label for="checklistTitle">事项名称</label>
+            <input id="checklistTitle" name="title" required maxlength="80" value="${escapeHtml(item.title || "")}" placeholder="例如：带学生证">
+          </div>
+          <div class="field">
+            <label for="checklistNote">备注</label>
+            <textarea id="checklistNote" name="note" placeholder="补充说明">${escapeHtml(item.note || "")}</textarea>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="checklistDate">日期</label>
+              <input id="checklistDate" name="date" type="date" value="${escapeHtml(item.date || "")}">
+            </div>
+            <div class="field">
+              <label for="checklistPriority">优先级</label>
+              <select id="checklistPriority" name="priority">
+                <option value="normal" ${item.priority === "normal" ? "selected" : ""}>普通</option>
+                <option value="high" ${item.priority === "high" ? "selected" : ""}>高</option>
+                <option value="mid" ${item.priority === "mid" ? "selected" : ""}>中</option>
+                <option value="low" ${item.priority === "low" ? "selected" : ""}>低</option>
+              </select>
+            </div>
+          </div>
+          <label class="field" style="display:flex;align-items:center;gap:8px;flex-direction:row;">
+            <input type="checkbox" name="parentVisible" ${item.parentVisible ? "checked" : ""}>
+            <span>家长可见</span>
+          </label>
+          <div class="dialog-actions">
+            <button type="button" class="ghost-btn" data-close>取消</button>
+            <button type="submit" class="primary-btn">保存事项</button>
+          </div>
+        `;
+      }
+
+      if (type === "link") {
+        return `
+          <div class="field">
+            <label for="linkTitle">标题</label>
+            <input id="linkTitle" name="title" required maxlength="80" value="${escapeHtml(item.title || "")}" placeholder="例如：学校教务系统">
+          </div>
+          <div class="field">
+            <label for="linkUrl">网址</label>
+            <input id="linkUrl" name="url" type="url" required value="${escapeHtml(item.url || "")}" placeholder="https://example.com">
+          </div>
+          <div class="field">
+            <label for="linkCategory">分类</label>
+            <input id="linkCategory" name="category" value="${escapeHtml(item.category || "")}" placeholder="例如：学习、工具">
+          </div>
+          <label class="field" style="display:flex;align-items:center;gap:8px;flex-direction:row;">
+            <input type="checkbox" name="parentVisible" ${item.parentVisible ? "checked" : ""}>
+            <span>家长可见</span>
+          </label>
+          <div class="dialog-actions">
+            <button type="button" class="ghost-btn" data-close>取消</button>
+            <button type="submit" class="primary-btn">保存链接</button>
+          </div>
+        `;
+      }
+
       if (type === "log") {
         return `
           <div class="field">
@@ -2963,6 +3184,10 @@
           <div class="field">
             <label for="logTags">标签</label>
             <input id="logTags" name="tags" value="${escapeHtml((item.tags || []).join("，"))}" placeholder="用逗号分隔，例如：运动，阅读">
+          </div>
+          <div class="field">
+            <label for="logImageUrl">图片链接</label>
+            <input id="logImageUrl" name="imageUrl" type="url" value="${escapeHtml(item.imageUrl || "")}" placeholder="https://...">
           </div>
           <div class="dialog-actions">
             <button type="button" class="ghost-btn" data-close>取消</button>
@@ -3084,6 +3309,44 @@
         }
       }
 
+      if (type === "checklist") {
+        const item = {
+          id: editing?.id || uid("checklist"),
+          title: data.get("title").trim(),
+          note: data.get("note").trim(),
+          date: data.get("date") || null,
+          priority: data.get("priority") || "normal",
+          parentVisible: data.get("parentVisible") === "on",
+          done: editing?.done || false,
+          createdAt: editing?.createdAt || now,
+          updatedAt: now
+        };
+        if (!item.title) return;
+        if (editing) {
+          state.checklists = state.checklists.map((entry) => entry.id === item.id ? item : entry);
+        } else {
+          state.checklists.push(item);
+        }
+      }
+
+      if (type === "link") {
+        const item = {
+          id: editing?.id || uid("link"),
+          title: data.get("title").trim(),
+          url: data.get("url").trim(),
+          category: data.get("category").trim(),
+          parentVisible: data.get("parentVisible") === "on",
+          createdAt: editing?.createdAt || now,
+          updatedAt: now
+        };
+        if (!item.title || !item.url) return;
+        if (editing) {
+          state.links = state.links.map((entry) => entry.id === item.id ? item : entry);
+        } else {
+          state.links.push(item);
+        }
+      }
+
       if (type === "log") {
         const tags = data.get("tags").split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
         const item = {
@@ -3093,6 +3356,7 @@
           body: data.get("body").trim(),
           mood: data.get("mood"),
           tags,
+          imageUrl: data.get("imageUrl").trim(),
           createdAt: editing?.createdAt || now,
           updatedAt: now
         };
@@ -3106,7 +3370,7 @@
 
       closeDialog();
       saveState();
-      showToast(type === "goal" ? "目标已保存" : type === "plan" ? "计划已保存" : type === "schedule" ? "日程已保存" : "日志已保存");
+      showToast(type === "goal" ? "目标已保存" : type === "plan" ? "计划已保存" : type === "schedule" ? "日程已保存" : type === "checklist" ? "事项已保存" : type === "link" ? "链接已保存" : "日志已保存");
     }
 
     function togglePlanStep(planId, stepId) {
@@ -3138,8 +3402,16 @@
       showToast(plan.completed ? "已完成，做得好" : "已重新打开");
     }
 
+    function toggleChecklist(id) {
+      const item = state.checklists.find((entry) => entry.id === id);
+      if (!item) return;
+      item.done = !item.done;
+      item.updatedAt = new Date().toISOString();
+      saveState();
+    }
+
     function deleteItem(type, id) {
-      const label = { goal: "目标", plan: "计划", schedule: "日程", log: "日志" }[type];
+      const label = { goal: "目标", plan: "计划", schedule: "日程", checklist: "事项", link: "链接", log: "日志" }[type];
       if (!confirm(`确定删除这条${label}吗？此操作无法撤销。`)) return;
       if (type === "goal") {
         state.goals = state.goals.filter((item) => item.id !== id);
@@ -3147,6 +3419,8 @@
       }
       if (type === "plan") state.plans = state.plans.filter((item) => item.id !== id);
       if (type === "schedule") state.schedules = state.schedules.filter((item) => item.id !== id);
+      if (type === "checklist") state.checklists = state.checklists.filter((item) => item.id !== id);
+      if (type === "link") state.links = state.links.filter((item) => item.id !== id);
       if (type === "log") state.logs = state.logs.filter((item) => item.id !== id);
       saveState();
       showToast(`${label}已删除`);
@@ -3461,6 +3735,16 @@
       ];
       saveState();
       showToast("示例数据已填入");
+    }
+
+    async function copyParentLink() {
+      const url = `${location.origin}${location.pathname}?parent=1`;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast("家长链接已复制");
+      } catch (error) {
+        showToast(`请手动复制：${url}`);
+      }
     }
 
     function showToast(message) {
