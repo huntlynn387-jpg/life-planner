@@ -1358,6 +1358,24 @@
       display: none !important;
     }
 
+    @keyframes pageInLeft {
+      from { opacity: 0; transform: translateX(28px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pageInRight {
+      from { opacity: 0; transform: translateX(-28px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .page-anim-left {
+      animation: pageInLeft 0.26s ease;
+    }
+
+    .page-anim-right {
+      animation: pageInRight 0.26s ease;
+    }
+
     body.parent-mode [data-open],
     body.parent-mode [data-edit],
     body.parent-mode [data-delete],
@@ -2396,11 +2414,20 @@
 
     function switchView(view) {
       document.body.classList.remove("more-open");
+      const oldIndex = viewOrder.indexOf(currentView);
+      const newIndex = viewOrder.indexOf(view);
+      const direction = newIndex > oldIndex ? "left" : "right";
+      main.classList.remove("page-anim-left", "page-anim-right");
+      void main.offsetWidth;
+      main.classList.add(direction === "left" ? "page-anim-left" : "page-anim-right");
       currentView = view;
       document.querySelectorAll(".nav-btn").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.view === view);
       });
       render();
+      window.setTimeout(() => {
+        main.classList.remove("page-anim-left", "page-anim-right");
+      }, 280);
     }
 
     function render() {
