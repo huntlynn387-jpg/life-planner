@@ -6,18 +6,20 @@
   <title>日行一页 · 个人计划与日志</title>
   <style>
     :root {
-      --paper: #f3f5f0;
-      --paper-deep: #e9ede6;
-      --surface: #fbfcf8;
-      --ink: #18231e;
-      --muted: #67746d;
-      --line: #d9dfd7;
-      --accent: #d9532f;
-      --accent-soft: #f8e3da;
-      --amber: #efb23a;
+      --paper: #f7f8f3;
+      --paper-deep: #eef1e9;
+      --surface: #fdfdf9;
+      --ink: #17211c;
+      --muted: #667169;
+      --line: #dde2d9;
+      --accent: #c95233;
+      --accent-soft: #f8e4dc;
+      --amber: #e5ac3c;
       --green: #3f7a5b;
-      --shadow: 0 18px 50px rgba(24, 35, 30, 0.08);
-      --radius: 18px;
+      --shadow: 0 14px 36px rgba(24, 35, 30, 0.07);
+      --shadow-soft: 0 8px 20px rgba(24, 35, 30, 0.05);
+      --radius: 22px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * {
@@ -30,10 +32,10 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
       color: var(--ink);
       background:
-        radial-gradient(circle at 85% -10%, rgba(239, 178, 58, 0.12), transparent 32rem),
+        radial-gradient(circle at 82% -12%, rgba(229, 172, 60, 0.13), transparent 30rem),
         linear-gradient(180deg, var(--paper), var(--paper-deep));
       font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 15px;
@@ -50,6 +52,8 @@
 
     button {
       color: inherit;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     .app {
@@ -956,11 +960,13 @@
       border: 0;
       border-left: 3px solid var(--green);
       border-radius: 9px;
-      background: rgba(63, 122, 91, 0.13);
+      background: rgba(253, 253, 249, 0.92);
       color: var(--ink);
       text-align: left;
       cursor: pointer;
-      box-shadow: 0 3px 10px rgba(24, 35, 30, 0.05);
+      box-shadow: 0 3px 10px rgba(24, 35, 30, 0.06);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
 
     .schedule-event:hover {
@@ -1357,88 +1363,159 @@
 
     @media (max-width: 860px) {
       .app {
-        grid-template-columns: 1fr;
+        display: block;
+        min-height: 100dvh;
       }
 
       .sidebar {
-        position: sticky;
-        top: 0;
-        z-index: 10;
+        position: fixed;
+        right: 12px;
+        bottom: calc(10px + var(--safe-bottom));
+        left: 12px;
+        z-index: 50;
         height: auto;
         flex-direction: row;
         align-items: center;
-        gap: 10px;
-        padding: 12px 16px;
+        justify-content: center;
+        gap: 4px;
+        padding: 7px;
         overflow-x: auto;
-        border-right: 0;
-        border-bottom: 1px solid rgba(24, 35, 30, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        background: rgba(23, 33, 28, 0.93);
+        box-shadow: 0 14px 36px rgba(23, 33, 28, 0.24);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
       }
 
-      .brand {
-        flex: 0 0 auto;
-      }
-
+      .brand,
       .brand-sub,
-      .nav-label {
+      .nav-label,
+      .nav-count,
+      .app-version,
+      .sidebar-footer {
         display: none;
       }
 
-      .sidebar-footer {
-        display: flex;
-        flex-direction: row;
-        gap: 6px;
-        overflow-x: auto;
+      body.more-open .sidebar-footer {
+        display: grid;
+        position: fixed;
+        right: 12px;
+        bottom: calc(76px + var(--safe-bottom));
+        left: 12px;
+        z-index: 51;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid rgba(23, 33, 28, 0.08);
+        border-radius: 18px;
+        background: rgba(253, 253, 249, 0.98);
+        box-shadow: 0 18px 46px rgba(23, 33, 28, 0.18);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
       }
 
-      .sidebar-footer .text-btn {
+      body.more-open .sidebar-footer .text-btn {
+        min-height: 42px;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--ink);
+        text-align: center;
+      }
+
+      #moreNavBtn {
         flex: 0 0 auto;
-        white-space: nowrap;
+        min-width: 54px;
       }
 
       .nav {
         flex-direction: row;
-        gap: 4px;
+        justify-content: space-around;
+        width: 100%;
+        gap: 2px;
       }
 
       .nav-btn {
+        flex: 1 1 0;
+        min-width: 46px;
+        min-height: 46px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
         width: auto;
-        padding: 9px 11px;
+        padding: 8px 4px;
+        border-radius: 15px;
+        color: rgba(253, 253, 249, 0.66);
+        text-align: center;
       }
 
-      .nav-count {
-        margin-left: 5px;
+      .nav-btn:hover {
+        background: transparent;
+      }
+
+      .nav-btn.active {
+        color: var(--surface);
+        background: rgba(255, 255, 255, 0.14);
+        transform: none;
+      }
+
+      .nav-dot {
+        display: none;
+      }
+
+      .nav-btn > span:not(.nav-dot) {
+        font-size: 11px;
+        line-height: 1.1;
+        white-space: nowrap;
       }
 
       .main {
-        padding: 24px 18px 48px;
+        padding: 18px 14px calc(104px + var(--safe-bottom));
+        max-width: 640px;
+        margin: 0 auto;
       }
 
       .mobile-quick-nav {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        margin: -8px 0 18px;
-      }
-
-      .mobile-quick-nav button {
-        flex: 0 0 auto;
-        padding: 8px 12px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--surface);
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 12px;
-      }
-
-      .mobile-quick-nav button.active {
-        color: var(--surface);
-        background: var(--ink);
-        border-color: var(--ink);
+        display: none;
       }
 
       .hero-inner {
         flex-direction: column;
+        gap: 16px;
+      }
+
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .topbar .primary-btn,
+      .topbar .ghost-btn,
+      .topbar .danger-btn {
+        width: 100%;
+      }
+
+      .page-title {
+        font-size: clamp(26px, 8vw, 34px);
+      }
+
+      .hero {
+        padding: 20px;
+        border-radius: 20px;
+      }
+
+      .card {
+        padding: 16px;
+        border-radius: 18px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .card-header {
+        margin-bottom: 14px;
       }
 
       .grid-two,
@@ -1460,6 +1537,100 @@
 
       .form-row {
         grid-template-columns: 1fr;
+      }
+
+      .item {
+        padding: 15px 14px 15px 16px;
+        border-radius: 16px;
+      }
+
+      .item-actions {
+        opacity: 1;
+      }
+
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+      }
+
+      .dialog-backdrop {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .dialog {
+        width: 100%;
+        max-width: none;
+        max-height: 92dvh;
+        padding: 20px 18px calc(20px + var(--safe-bottom));
+        border-radius: 24px 24px 0 0;
+        box-shadow: 0 -18px 50px rgba(23, 33, 28, 0.22);
+      }
+
+      .dialog-actions {
+        margin-top: 12px;
+        position: sticky;
+        bottom: 0;
+        padding-top: 10px;
+        background: linear-gradient(to top, var(--surface) 75%, rgba(253, 253, 249, 0));
+      }
+
+      .toast {
+        right: 14px;
+        bottom: calc(92px + var(--safe-bottom));
+        left: 14px;
+        width: auto;
+        text-align: center;
+      }
+
+      .schedule-viewbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .week-pager {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .view-switch {
+        width: 100%;
+      }
+
+      .view-switch button {
+        flex: 1;
+      }
+
+      .schedule-scroll {
+        border-radius: 14px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .schedule-board {
+        min-width: 760px;
+      }
+
+      .timeline-slot {
+        grid-template-columns: 48px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .timeline-time {
+        font-size: 11px;
+      }
+
+      .schedule-item {
+        padding: 10px 11px;
+        border-radius: 14px;
+      }
+
+      .schedule-title {
+        font-size: 13px;
+      }
+
+      .schedule-time {
+        min-width: 66px;
+        font-size: 11px;
       }
     }
 
@@ -1523,10 +1694,14 @@
           <span>日志</span>
           <span class="nav-count" data-count="logs">0</span>
         </button>
+        <button class="nav-btn" id="moreNavBtn" type="button" aria-label="更多工具">
+          <span class="nav-dot"></span>
+          <span>更多</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.0.0</span>
+        <span class="app-version" id="appVersion">日行一页 v1.1.0</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -1559,7 +1734,7 @@
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.0.0";
+    const APP_VERSION = "v1.1.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     const SUPABASE_STATE_ID = "main";
@@ -1601,9 +1776,14 @@
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
+        document.body.classList.remove("more-open");
         if (btn.dataset.view === "plans") plansGoalFilter = "";
         switchView(btn.dataset.view);
       });
+    });
+
+    document.getElementById("moreNavBtn").addEventListener("click", () => {
+      document.body.classList.toggle("more-open");
     });
 
     dialogBack.addEventListener("click", goBackDialog);
@@ -1913,6 +2093,7 @@
     }
 
     function switchView(view) {
+      document.body.classList.remove("more-open");
       currentView = view;
       document.querySelectorAll(".nav-btn").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.view === view);
