@@ -67,28 +67,6 @@
       min-height: 100vh;
     }
 
-    .page-ghost {
-      position: absolute;
-      inset: 0;
-      z-index: 5;
-      overflow: auto;
-      padding: 34px 42px 56px;
-      max-width: 1180px;
-      width: 100%;
-      margin: 0 auto;
-      background: var(--paper);
-      will-change: transform;
-    }
-
-    .page-ghost.hidden {
-      display: none !important;
-    }
-
-    .main.is-dragging,
-    .page-ghost.is-dragging {
-      transition: none !important;
-    }
-
     .sidebar {
       position: sticky;
       top: 0;
@@ -1381,24 +1359,6 @@
       display: none !important;
     }
 
-    @keyframes pageInLeft {
-      from { opacity: 0; transform: translateX(28px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    @keyframes pageInRight {
-      from { opacity: 0; transform: translateX(-28px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
-
-    .page-anim-left {
-      animation: pageInLeft 0.26s ease;
-    }
-
-    .page-anim-right {
-      animation: pageInRight 0.26s ease;
-    }
-
     body.parent-mode [data-open],
     body.parent-mode [data-edit],
     body.parent-mode [data-delete],
@@ -1558,40 +1518,6 @@
         display: none;
       }
 
-      body.more-open .sidebar-footer {
-        display: grid;
-        position: fixed;
-        top: calc(72px + var(--safe-top));
-        right: 12px;
-        bottom: auto;
-        left: 12px;
-        z-index: 51;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        padding: 12px;
-        border: 1px solid rgba(23, 33, 28, 0.08);
-        border-radius: 18px;
-        background: rgba(253, 253, 249, 0.98);
-        box-shadow: 0 18px 46px rgba(23, 33, 28, 0.18);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-      }
-
-      body.more-open .sidebar-footer .text-btn {
-        min-height: 42px;
-        padding: 9px 12px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: var(--surface);
-        color: var(--ink);
-        text-align: center;
-      }
-
-      #moreNavBtn {
-        flex: 0 0 auto;
-        min-width: 54px;
-      }
-
       .nav {
         flex-direction: row;
         justify-content: space-around;
@@ -1637,11 +1563,6 @@
         padding: calc(76px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
         max-width: 640px;
         margin: 0 auto;
-      }
-
-      .page-ghost {
-        padding: calc(76px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
-        max-width: 640px;
       }
 
       .mobile-quick-nav {
@@ -1861,10 +1782,6 @@
           <span>日志</span>
           <span class="nav-count" data-count="logs">0</span>
         </button>
-        <button class="nav-btn" id="moreNavBtn" type="button" aria-label="更多工具">
-          <span class="nav-dot"></span>
-          <span>更多</span>
-        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -1882,7 +1799,6 @@
     </aside>
 
     <main class="main" id="main"></main>
-    <section class="page-ghost hidden" id="pageGhost" aria-hidden="true"></section>
   </div>
 
   <div class="dialog-backdrop hidden" id="dialogBackdrop">
@@ -1914,7 +1830,6 @@
     let authToken = null;
 
     let currentView = "today";
-    const viewOrder = ["today", "goals", "plans", "schedule", "checklists", "links", "logs"];
     let plansFilter = "active";
     let plansDate = "";
     let plansGoalFilter = "";
@@ -1938,7 +1853,6 @@
     let toastTimer = null;
 
     const main = document.getElementById("main");
-    const pageGhost = document.getElementById("pageGhost");
     let renderRoot = main;
     const dialogBackdrop = document.getElementById("dialogBackdrop");
     const dialogForm = document.getElementById("dialogForm");
@@ -1955,10 +1869,6 @@
         if (btn.dataset.view === "plans") plansGoalFilter = "";
         switchView(btn.dataset.view);
       });
-    });
-
-    document.getElementById("moreNavBtn").addEventListener("click", () => {
-      document.body.classList.toggle("more-open");
     });
 
     dialogBack.addEventListener("click", goBackDialog);
@@ -2445,21 +2355,11 @@
 
     function switchView(view) {
       document.body.classList.remove("more-open");
-      if (!swipeActive) resetSwipeLayers(false);
-      const oldIndex = viewOrder.indexOf(currentView);
-      const newIndex = viewOrder.indexOf(view);
-      const direction = newIndex > oldIndex ? "left" : "right";
-      main.classList.remove("page-anim-left", "page-anim-right");
-      void main.offsetWidth;
-      main.classList.add(direction === "left" ? "page-anim-left" : "page-anim-right");
       currentView = view;
       document.querySelectorAll(".nav-btn").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.view === view);
       });
       render();
-      window.setTimeout(() => {
-        main.classList.remove("page-anim-left", "page-anim-right");
-      }, 280);
     }
 
     function render() {
@@ -3244,127 +3144,6 @@
         </article>
       `;
     }
-
-    let swipeActive = false;
-    let swipeStartX = 0;
-    let swipeStartY = 0;
-    let swipeDeltaX = 0;
-    let swipeTargetView = null;
-    let swipeDirection = 0;
-
-    function renderGhostView(view) {
-      const previousRoot = renderRoot;
-      const previousView = currentView;
-      renderRoot = pageGhost;
-      currentView = view;
-      render();
-      renderRoot = previousRoot;
-      currentView = previousView;
-    }
-
-    function resetSwipeLayers(animate) {
-      main.classList.remove("is-dragging");
-      pageGhost.classList.remove("is-dragging");
-      const transition = animate ? "transform 0.24s ease" : "none";
-      main.style.transition = transition;
-      pageGhost.style.transition = transition;
-      main.style.transform = "";
-      pageGhost.style.transform = "";
-      pageGhost.classList.add("hidden");
-      pageGhost.innerHTML = "";
-      swipeActive = false;
-      swipeTargetView = null;
-      swipeDeltaX = 0;
-    }
-
-    function startSwipe(targetView, direction, deltaX) {
-      renderGhostView(targetView);
-      pageGhost.classList.remove("hidden");
-      main.classList.add("is-dragging");
-      pageGhost.classList.add("is-dragging");
-      main.style.transition = "none";
-      pageGhost.style.transition = "none";
-      swipeActive = true;
-      swipeTargetView = targetView;
-      swipeDirection = direction;
-      swipeDeltaX = deltaX;
-      updateSwipePosition(deltaX);
-    }
-
-    function updateSwipePosition(deltaX) {
-      swipeDeltaX = deltaX;
-      main.style.transform = `translateX(${deltaX}px)`;
-      if (swipeDirection < 0) {
-        pageGhost.style.transform = `translateX(calc(100% + ${deltaX}px))`;
-      } else {
-        pageGhost.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
-      }
-    }
-
-    main.addEventListener("touchstart", (event) => {
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      if (swipeActive) resetSwipeLayers(false);
-      swipeStartX = touch.clientX;
-      swipeStartY = touch.clientY;
-      swipeDeltaX = 0;
-    }, { passive: true });
-
-    main.addEventListener("touchmove", (event) => {
-      if (!dialogBackdrop.classList.contains("hidden")) return;
-      const touch = event.touches?.[0];
-      if (!touch) return;
-      const target = event.target instanceof Element ? event.target : event.target.parentElement;
-      if (target?.closest(".schedule-scroll, input, textarea, select, button, a")) return;
-
-      const deltaX = touch.clientX - swipeStartX;
-      const deltaY = touch.clientY - swipeStartY;
-      if (!swipeActive) {
-        if (Math.abs(deltaX) < 14 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
-        const currentIndex = viewOrder.indexOf(currentView);
-        const targetIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
-        const targetView = viewOrder[targetIndex];
-        if (!targetView) return;
-        startSwipe(targetView, deltaX < 0 ? -1 : 1, deltaX);
-      } else {
-        updateSwipePosition(deltaX);
-      }
-    }, { passive: true });
-
-    main.addEventListener("touchend", (event) => {
-      if (!swipeActive) {
-        swipeStartX = 0;
-        swipeStartY = 0;
-        return;
-      }
-      const touch = event.changedTouches?.[0];
-      if (touch) swipeDeltaX = touch.clientX - swipeStartX;
-
-      const shouldSwitch = Math.abs(swipeDeltaX) >= window.innerWidth * 0.5;
-      if (shouldSwitch && swipeTargetView) {
-        main.style.transition = "transform 0.24s ease";
-        pageGhost.style.transition = "transform 0.24s ease";
-        main.style.transform = swipeDirection < 0 ? "translateX(-100%)" : "translateX(100%)";
-        pageGhost.style.transform = "translateX(0)";
-        const nextView = swipeTargetView;
-        window.setTimeout(() => {
-          switchView(nextView);
-          resetSwipeLayers(false);
-        }, 250);
-      } else {
-        main.style.transition = "transform 0.24s ease";
-        pageGhost.style.transition = "transform 0.24s ease";
-        main.style.transform = "translateX(0)";
-        pageGhost.style.transform = swipeDirection < 0 ? "translateX(100%)" : "translateX(-100%)";
-        window.setTimeout(() => resetSwipeLayers(false), 250);
-      }
-    }, { passive: true });
-
-    main.addEventListener("touchcancel", () => {
-      if (swipeActive) resetSwipeLayers(true);
-      swipeStartX = 0;
-      swipeStartY = 0;
-    }, { passive: true });
 
     main.addEventListener("click", (event) => {
       const target = event.target instanceof Element ? event.target : event.target.parentElement;
