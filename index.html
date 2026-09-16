@@ -3339,7 +3339,7 @@
       const touch = event.changedTouches?.[0];
       if (touch) swipeDeltaX = touch.clientX - swipeStartX;
 
-      const shouldSwitch = Math.abs(swipeDeltaX) > window.innerWidth * 0.28;
+      const shouldSwitch = Math.abs(swipeDeltaX) >= window.innerWidth * 0.5;
       if (shouldSwitch && swipeTargetView) {
         main.style.transition = "transform 0.24s ease";
         pageGhost.style.transition = "transform 0.24s ease";
