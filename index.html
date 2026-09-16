@@ -21,6 +21,7 @@
       --shadow-soft: 0 8px 20px rgba(24, 35, 30, 0.05);
       --radius: 22px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
 
     * {
@@ -1486,24 +1487,25 @@
 
       .sidebar {
         position: fixed;
-        top: auto;
-        right: 12px;
-        bottom: calc(10px + var(--safe-bottom));
-        left: 12px;
+        top: 0;
+        right: 0;
+        bottom: auto;
+        left: 0;
         z-index: 50;
         height: auto;
         flex-direction: row;
         align-items: center;
         justify-content: center;
         gap: 4px;
-        padding: 7px;
+        padding: calc(7px + var(--safe-top)) 8px 8px;
         overflow-x: auto;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 22px;
-        background: rgba(23, 33, 28, 0.93);
-        box-shadow: 0 14px 36px rgba(23, 33, 28, 0.24);
-        backdrop-filter: blur(18px);
-        -webkit-backdrop-filter: blur(18px);
+        border: 0;
+        border-bottom: 1px solid rgba(23, 33, 28, 0.08);
+        border-radius: 0;
+        background: rgba(253, 253, 249, 0.96);
+        box-shadow: 0 8px 24px rgba(23, 33, 28, 0.06);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
       }
 
       .brand,
@@ -1518,8 +1520,9 @@
       body.more-open .sidebar-footer {
         display: grid;
         position: fixed;
+        top: calc(72px + var(--safe-top));
         right: 12px;
-        bottom: calc(76px + var(--safe-bottom));
+        bottom: auto;
         left: 12px;
         z-index: 51;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1565,7 +1568,7 @@
         width: auto;
         padding: 8px 4px;
         border-radius: 15px;
-        color: rgba(253, 253, 249, 0.66);
+        color: var(--muted);
         text-align: center;
       }
 
@@ -1574,8 +1577,8 @@
       }
 
       .nav-btn.active {
-        color: var(--surface);
-        background: rgba(255, 255, 255, 0.14);
+        color: var(--ink);
+        background: rgba(229, 172, 60, 0.18);
         transform: none;
       }
 
@@ -1590,7 +1593,7 @@
       }
 
       .main {
-        padding: 18px 14px calc(104px + var(--safe-bottom));
+        padding: calc(76px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
         max-width: 640px;
         margin: 0 auto;
       }
@@ -1864,6 +1867,7 @@
     let authToken = null;
 
     let currentView = "today";
+    const viewOrder = ["today", "goals", "plans", "schedule", "checklists", "links", "logs"];
     let plansFilter = "active";
     let plansDate = "";
     let plansGoalFilter = "";
@@ -3181,6 +3185,37 @@
         </article>
       `;
     }
+
+    let touchStartX = null;
+    let touchStartY = null;
+
+    main.addEventListener("touchstart", (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, { passive: true });
+
+    main.addEventListener("touchend", (event) => {
+      if (touchStartX === null || touchStartY === null) return;
+      const touch = event.changedTouches?.[0];
+      if (!touch) return;
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+      touchStartX = null;
+      touchStartY = null;
+
+      if (Math.abs(deltaX) < 65 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+      if (!dialogBackdrop.classList.contains("hidden")) return;
+      const target = event.target instanceof Element ? event.target : event.target.parentElement;
+      if (target?.closest(".schedule-scroll, input, textarea, select, button, a")) return;
+
+      const currentIndex = viewOrder.indexOf(currentView);
+      if (currentIndex < 0) return;
+      const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+      const nextView = viewOrder[nextIndex];
+      if (nextView) switchView(nextView);
+    }, { passive: true });
 
     main.addEventListener("click", (event) => {
       const target = event.target instanceof Element ? event.target : event.target.parentElement;
