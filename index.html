@@ -1361,6 +1361,100 @@
       border: 0;
     }
 
+    body.auth-mode .app {
+      display: block;
+    }
+
+    body.auth-mode .sidebar {
+      display: none;
+    }
+
+    body.auth-mode .main {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 32px 18px 56px;
+    }
+
+    .auth-shell {
+      display: grid;
+      gap: 18px;
+      padding: 26px 0;
+    }
+
+    .auth-brand {
+      display: grid;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .auth-brand h1 {
+      margin: 0;
+      font-family: "Songti SC", "Noto Serif SC", "SimSun", serif;
+      font-size: 34px;
+      letter-spacing: 0.02em;
+    }
+
+    .auth-brand p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .auth-card {
+      padding: 22px;
+      border: 1px solid rgba(24, 35, 30, 0.08);
+      border-radius: 22px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 18px;
+      padding: 4px;
+      border-radius: 14px;
+      background: var(--paper-deep);
+    }
+
+    .auth-tab {
+      border: 0;
+      border-radius: 11px;
+      padding: 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .auth-tab.active {
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .auth-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .auth-form .field input {
+      width: 100%;
+    }
+
+    .auth-error {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: #9d2f1f;
+      font-size: 13px;
+    }
+
+    .auth-error.show {
+      display: block;
+    }
+
     @media (max-width: 860px) {
       .app {
         display: block;
@@ -1708,6 +1802,7 @@
         <button class="text-btn" id="generateHomeworkBtn">生成作业计划</button>
         <button class="text-btn" id="generateCet6Btn">生成六级计划</button>
         <button class="text-btn" id="copyParentLinkBtn">复制家长链接</button>
+        <button class="text-btn" id="logoutBtn">退出登录</button>
         <button class="text-btn" id="sampleBtn">填入示例数据</button>
         <input type="file" id="importFile" accept="application/json" class="hidden">
       </div>
@@ -1737,9 +1832,12 @@
     const APP_VERSION = "v1.1.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
-    const SUPABASE_STATE_ID = "main";
+    let SUPABASE_STATE_ID = "main";
+    const AUTH_STORAGE_KEY = "daypage_auth";
     const todayKey = localDateKey(new Date());
     let state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
+    let authUser = null;
+    let authToken = null;
 
     let currentView = "today";
     let plansFilter = "active";
@@ -1811,9 +1909,197 @@
     document.getElementById("generateHomeworkBtn").addEventListener("click", generateHomeworkPlans);
     document.getElementById("generateCet6Btn").addEventListener("click", generateCet6Plan);
     document.getElementById("copyParentLinkBtn").addEventListener("click", copyParentLink);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("sampleBtn").addEventListener("click", loadSampleData);
 
-    initApp();
+    initAuth();
+
+    function phoneEmail(phone) {
+      return `${String(phone).replace(/\D/g, "")}@phone.local`;
+    }
+
+    async function authFetch(path, options = {}) {
+      const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+        ...options,
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+      const text = await response.text();
+      let data = {};
+      try { data = JSON.parse(text); } catch (error) {}
+      if (!response.ok) {
+        throw new Error(data.msg || data.error_description || data.message || "登录失败，请检查手机号和密码");
+      }
+      return data;
+    }
+
+    function saveAuthSession(session) {
+      authToken = session.access_token;
+      authUser = session.user;
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ access_token: session.access_token, user: session.user }));
+      SUPABASE_STATE_ID = `user_${session.user.id}`;
+    }
+
+    function clearAuthSession() {
+      authToken = null;
+      authUser = null;
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      SUPABASE_STATE_ID = "main";
+    }
+
+    function renderAuth(mode = "login") {
+      document.body.classList.add("auth-mode");
+      document.body.classList.remove("parent-mode");
+      main.innerHTML = `
+        <div class="auth-shell">
+          <div class="auth-brand">
+            <h1>日行一页</h1>
+            <p>用计划和日志，把每天过清楚</p>
+          </div>
+          <section class="auth-card">
+            <div class="auth-tabs">
+              <button class="auth-tab ${mode === "login" ? "active" : ""}" data-auth-mode="login">登录</button>
+              <button class="auth-tab ${mode === "register" ? "active" : ""}" data-auth-mode="register">注册</button>
+            </div>
+            <form class="auth-form" id="authForm">
+              <div class="field">
+                <label for="authPhone">手机号</label>
+                <input id="authPhone" type="tel" autocomplete="tel" placeholder="请输入手机号" required>
+              </div>
+              <div class="field">
+                <label for="authPassword">密码</label>
+                <input id="authPassword" type="password" autocomplete="${mode === "login" ? "current-password" : "new-password"}" placeholder="请输入密码" required>
+              </div>
+              ${mode === "register" ? `<div class="field"><label for="authName">称呼</label><input id="authName" type="text" autocomplete="nickname" placeholder="例如：子涵"></div>` : ""}
+              <div class="auth-error" id="authError"></div>
+              <button class="primary-btn" type="submit">${mode === "login" ? "登录" : "注册并进入"}</button>
+            </form>
+          </section>
+        </div>
+      `;
+
+      document.querySelectorAll("[data-auth-mode]").forEach((btn) => {
+        btn.addEventListener("click", () => renderAuth(btn.dataset.authMode));
+      });
+      document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+    }
+
+    async function handleAuthSubmit(event) {
+      event.preventDefault();
+      const phone = document.getElementById("authPhone").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const name = document.getElementById("authName")?.value.trim() || "用户";
+      const errorBox = document.getElementById("authError");
+      errorBox.classList.remove("show");
+      errorBox.textContent = "";
+
+      try {
+        if (document.querySelector(".auth-tab.active")?.dataset.authMode === "register") {
+          const session = await authFetch("signup", {
+            method: "POST",
+            body: JSON.stringify({ email: phoneEmail(phone), password, data: { phone, display_name: name } })
+          });
+          saveAuthSession(session);
+        } else {
+          const session = await authFetch("token?grant_type=password", {
+            method: "POST",
+            body: JSON.stringify({ email: phoneEmail(phone), password })
+          });
+          saveAuthSession(session);
+        }
+
+        document.body.classList.remove("auth-mode");
+        await initApp();
+      } catch (error) {
+        errorBox.textContent = error.message || "登录失败，请稍后再试";
+        errorBox.classList.add("show");
+      }
+    }
+
+    async function initAuth() {
+      parentMode = new URLSearchParams(location.search).has("parent");
+      try {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved?.access_token && saved?.user?.id) {
+            authToken = saved.access_token;
+            authUser = saved.user;
+            SUPABASE_STATE_ID = `user_${saved.user.id}`;
+            document.body.classList.remove("auth-mode");
+            await initApp();
+            return;
+          }
+        }
+      } catch (error) {}
+
+      if (parentMode) {
+        SUPABASE_STATE_ID = "main";
+        document.body.classList.remove("auth-mode");
+        await initApp();
+        return;
+      }
+
+      renderAuth("login");
+    }
+
+    function logout() {
+      clearAuthSession();
+      state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
+      document.body.classList.add("auth-mode");
+      document.body.classList.remove("parent-mode");
+      renderAuth("login");
+    }
+
+    async function migrateLegacyMainToUser() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.main&select=data`, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${authToken || SUPABASE_ANON_KEY}`,
+            Accept: "application/json"
+          }
+        });
+        if (!response.ok) return null;
+        const rows = await response.json();
+        if (!Array.isArray(rows) || !rows.length || !rows[0].data) return null;
+        await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${authToken || SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates"
+          },
+          body: JSON.stringify({ id: SUPABASE_STATE_ID, data: rows[0].data, updated_at: new Date().toISOString() })
+        });
+        return rows[0].data;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function normalizeStateData(parsed) {
+      return {
+        goals: Array.isArray(parsed.goals) ? parsed.goals : [],
+        plans: Array.isArray(parsed.plans)
+          ? parsed.plans.map((plan) => ({
+              ...plan,
+              steps: Array.isArray(plan.steps) ? plan.steps : [],
+              focusDate: plan.focusDate || null,
+              dueDate: plan.dueDate || null
+            }))
+          : [],
+        logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+        schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
+        checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
+        links: Array.isArray(parsed.links) ? parsed.links : [],
+        meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
+      };
+    }
 
     async function loadCloudState() {
       try {
@@ -1826,24 +2112,12 @@
         });
         if (!response.ok) return loadState();
         const rows = await response.json();
-        if (!Array.isArray(rows) || !rows.length) return loadState();
+        if (!Array.isArray(rows) || !rows.length) {
+          const migrated = await migrateLegacyMainToUser();
+          return migrated ? normalizeStateData(migrated) : loadState();
+        }
         const parsed = rows[0].data || {};
-        return {
-          goals: Array.isArray(parsed.goals) ? parsed.goals : [],
-          plans: Array.isArray(parsed.plans)
-            ? parsed.plans.map((plan) => ({
-                ...plan,
-                steps: Array.isArray(plan.steps) ? plan.steps : [],
-                focusDate: plan.focusDate || null,
-                dueDate: plan.dueDate || null
-              }))
-            : [],
-          logs: Array.isArray(parsed.logs) ? parsed.logs : [],
-          schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
-          checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
-          links: Array.isArray(parsed.links) ? parsed.links : [],
-          meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
-        };
+        return normalizeStateData(parsed);
       } catch (error) {
         return loadState();
       }
