@@ -37,6 +37,7 @@
       background:
         radial-gradient(circle at 82% -12%, rgba(229, 172, 60, 0.13), transparent 30rem),
         linear-gradient(180deg, var(--paper), var(--paper-deep));
+      background-color: var(--paper);
       font-family: "Avenir Next", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       font-size: 15px;
       line-height: 1.6;
@@ -1381,6 +1382,8 @@
 
     body.auth-mode .app {
       display: block;
+      min-height: 100dvh;
+      background: var(--paper);
     }
 
     body.auth-mode .sidebar {
