@@ -823,6 +823,24 @@
       object-fit: cover;
     }
 
+    .log-image-picker {
+      display: grid;
+      gap: 10px;
+    }
+
+    .log-image-preview {
+      display: none;
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: var(--paper-deep);
+    }
+
+    .log-image-preview.show {
+      display: block;
+    }
+
     .mood {
       font-size: 13px;
     }
@@ -3309,6 +3327,9 @@
           renderStepEditor();
         });
       }
+      if (type === "log") {
+        setupLogImagePicker(editing || {});
+      }
       dialogBackdrop.classList.remove("hidden");
       updateDialogBackButton();
       const first = dialogForm.querySelector("input, textarea, select");
@@ -3371,6 +3392,72 @@
           const index = Number(row.dataset.stepIndex);
           draftSteps[index].title = input.value;
         });
+      });
+    }
+
+    function setupLogImagePicker(item = {}) {
+      const picker = document.getElementById("logImagePickBtn");
+      const input = document.getElementById("logImageInput");
+      const preview = document.getElementById("logImagePreview");
+      const hidden = document.getElementById("logImageUrl");
+      if (!picker || !input || !preview || !hidden) return;
+
+      const renderPreview = (src) => {
+        if (src) {
+          preview.src = src;
+          preview.classList.add("show");
+        } else {
+          preview.removeAttribute("src");
+          preview.classList.remove("show");
+        }
+      };
+
+      renderPreview(item.imageUrl || "");
+
+      picker.addEventListener("click", () => input.click());
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          showToast("请选择图片文件");
+          return;
+        }
+        try {
+          const compressed = await compressImage(file);
+          hidden.value = compressed;
+          renderPreview(compressed);
+        } catch (error) {
+          showToast("图片处理失败，请换一张试试");
+        }
+      });
+    }
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const image = new Image();
+          image.onload = () => {
+            const maxEdge = 1280;
+            let width = image.width;
+            let height = image.height;
+            if (width > maxEdge || height > maxEdge) {
+              const scale = Math.min(maxEdge / width, maxEdge / height);
+              width = Math.round(width * scale);
+              height = Math.round(height * scale);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, width, height);
+            resolve(canvas.toDataURL("image/jpeg", 0.82));
+          };
+          image.onerror = reject;
+          image.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
 
@@ -3641,8 +3728,13 @@
             <input id="logTags" name="tags" value="${escapeHtml((item.tags || []).join("，"))}" placeholder="用逗号分隔，例如：运动，阅读">
           </div>
           <div class="field">
-            <label for="logImageUrl">图片链接</label>
-            <input id="logImageUrl" name="imageUrl" type="url" value="${escapeHtml(item.imageUrl || "")}" placeholder="https://...">
+            <label>照片</label>
+            <div class="log-image-picker">
+              <button type="button" class="ghost-btn" id="logImagePickBtn">＋ 从相册选择</button>
+              <input type="file" id="logImageInput" accept="image/*" class="hidden">
+              <img class="log-image-preview ${item.imageUrl ? "show" : ""}" id="logImagePreview" src="${escapeHtml(item.imageUrl || "")}" alt="">
+              <input type="hidden" name="imageUrl" id="logImageUrl" value="${escapeHtml(item.imageUrl || "")}">
+            </div>
           </div>
           <div class="dialog-actions">
             <button type="button" class="ghost-btn" data-close>取消</button>
