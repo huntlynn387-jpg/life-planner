@@ -3271,6 +3271,7 @@
       main.style.transform = "";
       pageGhost.style.transform = "";
       pageGhost.classList.add("hidden");
+      pageGhost.innerHTML = "";
       swipeActive = false;
       swipeTargetView = null;
       swipeDeltaX = 0;
@@ -3357,6 +3358,12 @@
         pageGhost.style.transform = swipeDirection < 0 ? "translateX(100%)" : "translateX(-100%)";
         window.setTimeout(() => resetSwipeLayers(false), 250);
       }
+    }, { passive: true });
+
+    main.addEventListener("touchcancel", () => {
+      if (swipeActive) resetSwipeLayers(true);
+      swipeStartX = 0;
+      swipeStartY = 0;
     }, { passive: true });
 
     main.addEventListener("click", (event) => {
