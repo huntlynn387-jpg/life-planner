@@ -3304,6 +3304,7 @@
     main.addEventListener("touchstart", (event) => {
       const touch = event.touches?.[0];
       if (!touch) return;
+      if (swipeActive) resetSwipeLayers(false);
       swipeStartX = touch.clientX;
       swipeStartY = touch.clientY;
       swipeDeltaX = 0;
