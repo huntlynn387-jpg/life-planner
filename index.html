@@ -2445,7 +2445,7 @@
 
     function switchView(view) {
       document.body.classList.remove("more-open");
-      resetSwipeLayers(false);
+      if (!swipeActive) resetSwipeLayers(false);
       const oldIndex = viewOrder.indexOf(currentView);
       const newIndex = viewOrder.indexOf(view);
       const direction = newIndex > oldIndex ? "left" : "right";
@@ -3347,8 +3347,8 @@
         pageGhost.style.transform = "translateX(0)";
         const nextView = swipeTargetView;
         window.setTimeout(() => {
-          resetSwipeLayers(false);
           switchView(nextView);
+          resetSwipeLayers(false);
         }, 250);
       } else {
         main.style.transition = "transform 0.24s ease";
