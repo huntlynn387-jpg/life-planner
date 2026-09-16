@@ -3278,7 +3278,6 @@
     }
 
     function startSwipe(targetView, direction, deltaX) {
-      renderRoot = pageGhost;
       renderGhostView(targetView);
       pageGhost.classList.remove("hidden");
       main.classList.add("is-dragging");
