@@ -61,9 +61,32 @@
     }
 
     .app {
+      position: relative;
       display: grid;
       grid-template-columns: 252px minmax(0, 1fr);
       min-height: 100vh;
+    }
+
+    .page-ghost {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      overflow: auto;
+      padding: 34px 42px 56px;
+      max-width: 1180px;
+      width: 100%;
+      margin: 0 auto;
+      background: var(--paper);
+      will-change: transform;
+    }
+
+    .page-ghost.hidden {
+      display: none !important;
+    }
+
+    .main.is-dragging,
+    .page-ghost.is-dragging {
+      transition: none !important;
     }
 
     .sidebar {
@@ -1616,6 +1639,11 @@
         margin: 0 auto;
       }
 
+      .page-ghost {
+        padding: calc(76px + var(--safe-top)) 14px calc(28px + var(--safe-bottom));
+        max-width: 640px;
+      }
+
       .mobile-quick-nav {
         display: none;
       }
@@ -1854,6 +1882,7 @@
     </aside>
 
     <main class="main" id="main"></main>
+    <section class="page-ghost hidden" id="pageGhost" aria-hidden="true"></section>
   </div>
 
   <div class="dialog-backdrop hidden" id="dialogBackdrop">
@@ -1909,6 +1938,8 @@
     let toastTimer = null;
 
     const main = document.getElementById("main");
+    const pageGhost = document.getElementById("pageGhost");
+    let renderRoot = main;
     const dialogBackdrop = document.getElementById("dialogBackdrop");
     const dialogForm = document.getElementById("dialogForm");
     const dialogTitle = document.getElementById("dialogTitle");
@@ -1999,7 +2030,7 @@
     function renderAuth(mode = "login") {
       document.body.classList.add("auth-mode");
       document.body.classList.remove("parent-mode");
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <div class="auth-shell">
           <div class="auth-brand">
             <h1>日行一页</h1>
@@ -2414,6 +2445,7 @@
 
     function switchView(view) {
       document.body.classList.remove("more-open");
+      resetSwipeLayers(false);
       const oldIndex = viewOrder.indexOf(currentView);
       const newIndex = viewOrder.indexOf(view);
       const direction = newIndex > oldIndex ? "left" : "right";
@@ -2468,7 +2500,7 @@
       const recentLogs = [...state.logs].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 3);
       const todaySchedule = todaySchedules();
 
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Today</p>
@@ -2562,7 +2594,7 @@
     }
 
     function renderGoals() {
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Direction</p>
@@ -2677,7 +2709,7 @@
     function renderPlans() {
       const allVisible = filteredPlans();
       const visible = allVisible.slice(0, plansVisibleCount);
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Actions</p>
@@ -2866,7 +2898,7 @@
       const daySchedules = state.schedules.filter((item) => item.date === scheduleDayKey);
       const title = scheduleView === "week" ? "周日程" : `${formatDate(scheduleDayKey)} 的日程`;
 
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Schedule</p>
@@ -3068,7 +3100,7 @@
 
     function renderChecklists() {
       const todayItems = state.checklists.filter((item) => !item.date || item.date === todayKey || (item.date && item.date < todayKey));
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Checklist</p>
@@ -3110,7 +3142,7 @@
     }
 
     function renderLinks() {
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Links</p>
@@ -3152,7 +3184,7 @@
 
     function renderLogs() {
       const logs = filteredLogs();
-      main.innerHTML = `
+      renderRoot.innerHTML = `
         <header class="topbar">
           <div>
             <p class="page-kicker">Reflection</p>
@@ -3213,35 +3245,118 @@
       `;
     }
 
-    let touchStartX = null;
-    let touchStartY = null;
+    let swipeActive = false;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeDeltaX = 0;
+    let swipeTargetView = null;
+    let swipeDirection = 0;
+
+    function renderGhostView(view) {
+      const previousRoot = renderRoot;
+      const previousView = currentView;
+      renderRoot = pageGhost;
+      currentView = view;
+      render();
+      renderRoot = previousRoot;
+      currentView = previousView;
+    }
+
+    function resetSwipeLayers(animate) {
+      main.classList.remove("is-dragging");
+      pageGhost.classList.remove("is-dragging");
+      const transition = animate ? "transform 0.24s ease" : "none";
+      main.style.transition = transition;
+      pageGhost.style.transition = transition;
+      main.style.transform = "";
+      pageGhost.style.transform = "";
+      pageGhost.classList.add("hidden");
+      swipeActive = false;
+      swipeTargetView = null;
+      swipeDeltaX = 0;
+    }
+
+    function startSwipe(targetView, direction, deltaX) {
+      renderRoot = pageGhost;
+      renderGhostView(targetView);
+      pageGhost.classList.remove("hidden");
+      main.classList.add("is-dragging");
+      pageGhost.classList.add("is-dragging");
+      main.style.transition = "none";
+      pageGhost.style.transition = "none";
+      swipeActive = true;
+      swipeTargetView = targetView;
+      swipeDirection = direction;
+      swipeDeltaX = deltaX;
+      updateSwipePosition(deltaX);
+    }
+
+    function updateSwipePosition(deltaX) {
+      swipeDeltaX = deltaX;
+      main.style.transform = `translateX(${deltaX}px)`;
+      if (swipeDirection < 0) {
+        pageGhost.style.transform = `translateX(calc(100% + ${deltaX}px))`;
+      } else {
+        pageGhost.style.transform = `translateX(calc(-100% + ${deltaX}px))`;
+      }
+    }
 
     main.addEventListener("touchstart", (event) => {
       const touch = event.touches?.[0];
       if (!touch) return;
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
+      swipeStartX = touch.clientX;
+      swipeStartY = touch.clientY;
+      swipeDeltaX = 0;
     }, { passive: true });
 
-    main.addEventListener("touchend", (event) => {
-      if (touchStartX === null || touchStartY === null) return;
-      const touch = event.changedTouches?.[0];
-      if (!touch) return;
-      const deltaX = touch.clientX - touchStartX;
-      const deltaY = touch.clientY - touchStartY;
-      touchStartX = null;
-      touchStartY = null;
-
-      if (Math.abs(deltaX) < 65 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    main.addEventListener("touchmove", (event) => {
       if (!dialogBackdrop.classList.contains("hidden")) return;
+      const touch = event.touches?.[0];
+      if (!touch) return;
       const target = event.target instanceof Element ? event.target : event.target.parentElement;
       if (target?.closest(".schedule-scroll, input, textarea, select, button, a")) return;
 
-      const currentIndex = viewOrder.indexOf(currentView);
-      if (currentIndex < 0) return;
-      const nextIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
-      const nextView = viewOrder[nextIndex];
-      if (nextView) switchView(nextView);
+      const deltaX = touch.clientX - swipeStartX;
+      const deltaY = touch.clientY - swipeStartY;
+      if (!swipeActive) {
+        if (Math.abs(deltaX) < 14 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
+        const currentIndex = viewOrder.indexOf(currentView);
+        const targetIndex = deltaX < 0 ? currentIndex + 1 : currentIndex - 1;
+        const targetView = viewOrder[targetIndex];
+        if (!targetView) return;
+        startSwipe(targetView, deltaX < 0 ? -1 : 1, deltaX);
+      } else {
+        updateSwipePosition(deltaX);
+      }
+    }, { passive: true });
+
+    main.addEventListener("touchend", (event) => {
+      if (!swipeActive) {
+        swipeStartX = 0;
+        swipeStartY = 0;
+        return;
+      }
+      const touch = event.changedTouches?.[0];
+      if (touch) swipeDeltaX = touch.clientX - swipeStartX;
+
+      const shouldSwitch = Math.abs(swipeDeltaX) > window.innerWidth * 0.28;
+      if (shouldSwitch && swipeTargetView) {
+        main.style.transition = "transform 0.24s ease";
+        pageGhost.style.transition = "transform 0.24s ease";
+        main.style.transform = swipeDirection < 0 ? "translateX(-100%)" : "translateX(100%)";
+        pageGhost.style.transform = "translateX(0)";
+        const nextView = swipeTargetView;
+        window.setTimeout(() => {
+          resetSwipeLayers(false);
+          switchView(nextView);
+        }, 250);
+      } else {
+        main.style.transition = "transform 0.24s ease";
+        pageGhost.style.transition = "transform 0.24s ease";
+        main.style.transform = "translateX(0)";
+        pageGhost.style.transform = swipeDirection < 0 ? "translateX(100%)" : "translateX(-100%)";
+        window.setTimeout(() => resetSwipeLayers(false), 250);
+      }
     }, { passive: true });
 
     main.addEventListener("click", (event) => {
