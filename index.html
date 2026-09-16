@@ -828,6 +828,12 @@
       margin-top: 10px;
       border-radius: 12px;
       object-fit: cover;
+      cursor: pointer;
+    }
+
+    .log-image-link {
+      display: block;
+      margin-top: 10px;
     }
 
     .log-image-picker {
@@ -3131,7 +3137,7 @@
             <div style="min-width:0;">
               <h3 class="item-title">${escapeHtml(log.title)}</h3>
               ${log.body ? `<p class="log-body">${escapeHtml(log.body)}</p>` : ""}
-              ${log.imageUrl ? `<img class="log-image" src="${escapeHtml(log.imageUrl)}" alt="">` : ""}
+              ${log.imageUrl ? `<a class="log-image-link" href="${escapeHtml(log.imageUrl)}" target="_blank" rel="noopener"><img class="log-image" src="${escapeHtml(log.imageUrl)}" alt=""></a>` : ""}
             </div>
             <div class="item-actions">
               <button class="icon-btn" data-edit="log" data-id="${log.id}" aria-label="编辑">✎</button>
