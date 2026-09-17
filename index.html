@@ -850,47 +850,87 @@
       position: fixed;
       inset: 0;
       z-index: 60;
-      display: grid;
-      place-items: center;
-      padding: 22px;
-      background: rgba(23, 33, 28, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(8, 13, 10, 0.9);
     }
 
     .lightbox-backdrop.hidden {
       display: none !important;
     }
 
-    .lightbox-panel {
+    .lightbox-viewport {
       position: relative;
-      width: min(920px, 100%);
-      max-height: 90vh;
-      display: grid;
-      place-items: center;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .lightbox-panel img {
+    .lightbox-viewport img {
       display: block;
-      max-width: 100%;
-      max-height: 90vh;
-      border-radius: 16px;
+      max-width: calc(100% - 28px);
+      max-height: calc(100% - 28px);
+      border-radius: 12px;
       object-fit: contain;
       background: var(--surface);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      transform: translate(0, 0) scale(1);
+      transform-origin: center center;
+      transition: transform 0.16s ease;
     }
 
-    .lightbox-close {
+    .lightbox-viewport img.is-zooming {
+      transition: none;
+    }
+
+    .lightbox-toolbar {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(18, 25, 21, 0.74);
+      backdrop-filter: blur(10px);
+    }
+
+    .lightbox-hint {
+      margin: 0 6px;
+      color: #fff;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .lightbox-btn {
       width: 36px;
       height: 36px;
       display: grid;
       place-items: center;
       border: 0;
       border-radius: 50%;
-      background: rgba(23, 33, 28, 0.7);
+      background: rgba(255, 255, 255, 0.14);
       color: #fff;
       cursor: pointer;
-      font-size: 18px;
+      font-size: 17px;
+    }
+
+    .lightbox-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .lightbox-btn:active {
+      transform: scale(0.94);
     }
 
     .log-image-picker {
@@ -1850,7 +1890,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.2.0</span>
+        <span class="app-version" id="appVersion">日行一页 v1.2.1</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -1881,8 +1921,14 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div class="lightbox-backdrop hidden" id="lightboxBackdrop" aria-hidden="true">
-    <div class="lightbox-panel">
-      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="关闭图片">✕</button>
+    <div class="lightbox-toolbar" id="lightboxToolbar">
+      <span class="lightbox-hint">双击放大 · 滚轮缩放</span>
+      <button class="lightbox-btn" id="lightboxZoomOut" type="button" aria-label="缩小">−</button>
+      <button class="lightbox-btn" id="lightboxZoomIn" type="button" aria-label="放大">＋</button>
+      <button class="lightbox-btn" id="lightboxReset" type="button" aria-label="恢复原始大小">1:1</button>
+      <button class="lightbox-btn" id="lightboxClose" type="button" aria-label="关闭图片">✕</button>
+    </div>
+    <div class="lightbox-viewport" id="lightboxViewport">
       <img id="lightboxImage" src="" alt="日志图片预览">
     </div>
   </div>
@@ -1890,7 +1936,7 @@
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.2.0";
+    const APP_VERSION = "v1.2.1";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
@@ -1934,8 +1980,13 @@
     const scheduleTooltip = document.getElementById("scheduleTooltip");
     const importFile = document.getElementById("importFile");
     const lightboxBackdrop = document.getElementById("lightboxBackdrop");
+    const lightboxViewport = document.getElementById("lightboxViewport");
     const lightboxImage = document.getElementById("lightboxImage");
     const lightboxClose = document.getElementById("lightboxClose");
+    const lightboxZoomIn = document.getElementById("lightboxZoomIn");
+    const lightboxZoomOut = document.getElementById("lightboxZoomOut");
+    const lightboxReset = document.getElementById("lightboxReset");
+    const lightboxToolbar = document.getElementById("lightboxToolbar");
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1952,9 +2003,30 @@
     });
 
     lightboxClose.addEventListener("click", closeLightbox);
+    lightboxZoomIn.addEventListener("click", () => zoomLightboxBy(1.3));
+    lightboxZoomOut.addEventListener("click", () => zoomLightboxBy(1 / 1.3));
+    lightboxReset.addEventListener("click", () => setLightboxTransform(1, 0, 0));
     lightboxBackdrop.addEventListener("click", (event) => {
-      if (event.target === lightboxBackdrop || event.target === lightboxImage) closeLightbox();
+      if (event.target === lightboxBackdrop || event.target === lightboxViewport) closeLightbox();
     });
+    lightboxImage.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      if (lightboxScale > 1.01) {
+        setLightboxTransform(1, 0, 0);
+      } else {
+        zoomLightboxBy(2.2);
+      }
+    });
+    lightboxViewport.addEventListener("wheel", (event) => {
+      if (lightboxBackdrop.classList.contains("hidden")) return;
+      event.preventDefault();
+      zoomLightboxBy(event.deltaY < 0 ? 1.15 : 1 / 1.15);
+    }, { passive: false });
+
+    lightboxViewport.addEventListener("pointerdown", handleLightboxPointerDown);
+    lightboxViewport.addEventListener("pointermove", handleLightboxPointerMove);
+    lightboxViewport.addEventListener("pointerup", handleLightboxPointerUp);
+    lightboxViewport.addEventListener("pointercancel", handleLightboxPointerUp);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
@@ -3492,7 +3564,7 @@
         reader.onload = () => {
           const image = new Image();
           image.onload = () => {
-            const maxEdge = 1280;
+            const maxEdge = 2560;
             let width = image.width;
             let height = image.height;
             if (width > maxEdge || height > maxEdge) {
@@ -3505,7 +3577,7 @@
             canvas.height = height;
             const context = canvas.getContext("2d");
             context.drawImage(image, 0, 0, width, height);
-            resolve(canvas.toDataURL("image/jpeg", 0.82));
+            resolve(canvas.toDataURL("image/jpeg", 0.9));
           };
           image.onerror = reject;
           image.src = reader.result;
@@ -4348,17 +4420,122 @@
       }
     }
 
+    let lightboxScale = 1;
+    let lightboxTranslateX = 0;
+    let lightboxTranslateY = 0;
+    let lightboxPointers = [];
+    let lightboxDragStart = null;
+    let lightboxPinchStart = null;
+
+    function setLightboxTransform(scale, x, y, immediate = false) {
+      lightboxScale = Math.min(5, Math.max(1, scale));
+      lightboxTranslateX = x;
+      lightboxTranslateY = y;
+      lightboxImage.classList.toggle("is-zooming", immediate);
+      lightboxImage.style.transform = `translate(${lightboxTranslateX}px, ${lightboxTranslateY}px) scale(${lightboxScale})`;
+      lightboxImage.style.cursor = lightboxScale > 1.01 ? "grab" : "default";
+    }
+
+    function zoomLightboxBy(factor) {
+      const nextScale = Math.min(5, Math.max(1, lightboxScale * factor));
+      if (Math.abs(nextScale - lightboxScale) < 0.001) return;
+      setLightboxTransform(nextScale, lightboxTranslateX, lightboxTranslateY, true);
+    }
+
     function openLightbox(src) {
       if (!src) return;
       lightboxImage.src = src;
+      setLightboxTransform(1, 0, 0, true);
       lightboxBackdrop.classList.remove("hidden");
       lightboxBackdrop.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
     }
 
     function closeLightbox() {
       lightboxBackdrop.classList.add("hidden");
       lightboxBackdrop.setAttribute("aria-hidden", "true");
       lightboxImage.removeAttribute("src");
+      lightboxImage.style.transform = "";
+      lightboxPointers = [];
+      lightboxDragStart = null;
+      document.body.style.overflow = "";
+    }
+
+    function handleLightboxPointerDown(event) {
+      if (lightboxBackdrop.classList.contains("hidden")) return;
+      lightboxPointers.push({ id: event.pointerId, x: event.clientX, y: event.clientY });
+      if (lightboxPointers.length === 1) {
+        lightboxDragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          translateX: lightboxTranslateX,
+          translateY: lightboxTranslateY,
+        };
+        lightboxImage.setPointerCapture?.(event.pointerId);
+      } else if (lightboxPointers.length === 2) {
+        lightboxDragStart = null;
+        const [first, second] = lightboxPointers;
+        lightboxPinchStart = {
+          distance: Math.hypot(second.x - first.x, second.y - first.y),
+          scale: lightboxScale,
+          center: {
+            x: (first.x + second.x) / 2,
+            y: (first.y + second.y) / 2,
+          },
+          translateX: lightboxTranslateX,
+          translateY: lightboxTranslateY,
+        };
+      }
+      lightboxImage.classList.add("is-zooming");
+    }
+
+    function handleLightboxPointerMove(event) {
+      if (lightboxBackdrop.classList.contains("hidden")) return;
+      const pointerIndex = lightboxPointers.findIndex((pointer) => pointer.id === event.pointerId);
+      if (pointerIndex === -1) return;
+      lightboxPointers[pointerIndex] = { id: event.pointerId, x: event.clientX, y: event.clientY };
+
+      if (lightboxPointers.length === 1 && lightboxDragStart && lightboxScale > 1.01) {
+        const dx = event.clientX - lightboxDragStart.x;
+        const dy = event.clientY - lightboxDragStart.y;
+        setLightboxTransform(lightboxScale, lightboxDragStart.translateX + dx, lightboxDragStart.translateY + dy, true);
+      } else if (lightboxPointers.length === 2 && lightboxPinchStart) {
+        const [first, second] = lightboxPointers;
+        const distance = Math.hypot(second.x - first.x, second.y - first.y);
+        const scale = Math.min(5, Math.max(1, lightboxPinchStart.scale * (distance / lightboxPinchStart.distance)));
+        const center = {
+          x: (first.x + second.x) / 2,
+          y: (first.y + second.y) / 2,
+        };
+        const centerDeltaX = center.x - lightboxPinchStart.center.x;
+        const centerDeltaY = center.y - lightboxPinchStart.center.y;
+        setLightboxTransform(
+          scale,
+          lightboxPinchStart.translateX + centerDeltaX,
+          lightboxPinchStart.translateY + centerDeltaY,
+          true,
+        );
+      }
+    }
+
+    function handleLightboxPointerUp(event) {
+      lightboxPointers = lightboxPointers.filter((pointer) => pointer.id !== event.pointerId);
+      if (lightboxPointers.length === 0) {
+        lightboxDragStart = null;
+        lightboxPinchStart = null;
+      } else if (lightboxPointers.length === 1 && lightboxScale > 1.01) {
+        const [pointer] = lightboxPointers;
+        lightboxDragStart = {
+          x: pointer.x,
+          y: pointer.y,
+          translateX: lightboxTranslateX,
+          translateY: lightboxTranslateY,
+        };
+      }
+      lightboxImage.classList.remove("is-zooming");
+      if (lightboxImage.hasPointerCapture?.(event.pointerId)) {
+        lightboxImage.releasePointerCapture?.(event.pointerId);
+      }
     }
 
     function showToast(message) {
