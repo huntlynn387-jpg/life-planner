@@ -248,6 +248,14 @@
       margin-bottom: 28px;
     }
 
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .mobile-quick-nav {
       display: none;
     }
@@ -822,28 +830,48 @@
       white-space: pre-wrap;
     }
 
-    .log-image {
-      max-width: 100%;
-      max-height: 240px;
-      margin-top: 10px;
-      border-radius: 12px;
-      object-fit: cover;
+    .log-body-preview {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .log-detail-hint {
+      display: inline-block;
+      margin-top: 6px;
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .log-card {
       cursor: pointer;
     }
 
-    .log-image-link {
-      display: block;
+    .log-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
       margin-top: 10px;
     }
 
     .log-image-button {
       display: block;
       width: 100%;
-      margin-top: 10px;
+      aspect-ratio: 4 / 3;
       padding: 0;
       border: 0;
+      border-radius: 10px;
+      overflow: hidden;
       background: none;
       cursor: zoom-in;
+    }
+
+    .log-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .lightbox-backdrop {
@@ -912,6 +940,13 @@
       white-space: nowrap;
     }
 
+    .lightbox-counter {
+      min-width: 38px;
+      color: #fff;
+      font-size: 12px;
+      text-align: center;
+    }
+
     .lightbox-btn {
       width: 36px;
       height: 36px;
@@ -938,17 +973,150 @@
       gap: 10px;
     }
 
-    .log-image-preview {
-      display: none;
-      width: 100%;
-      max-height: 260px;
-      object-fit: cover;
-      border-radius: 12px;
+    .log-image-picker-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .log-image-picker-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .log-image-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 8px;
+    }
+
+    .log-image-picker-item {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 10px;
       background: var(--paper-deep);
     }
 
-    .log-image-preview.show {
+    .log-image-picker-item img {
       display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .log-image-remove {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(18, 25, 21, 0.76);
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 55;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(8, 13, 10, 0.58);
+    }
+
+    .modal-backdrop.hidden {
+      display: none !important;
+    }
+
+    .modal-panel {
+      width: min(760px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: 0 24px 70px rgba(8, 13, 10, 0.28);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.35;
+    }
+
+    .modal-head .item-meta {
+      margin-left: 0;
+    }
+
+    .detail-body {
+      margin: 0;
+      color: #2c3933;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .detail-image-button {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--paper-deep);
+      cursor: zoom-in;
+    }
+
+    .detail-image-button img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .archive-date-row {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .archive-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
     }
 
     .mood {
@@ -1692,6 +1860,27 @@
         width: 100%;
       }
 
+      .topbar-actions {
+        width: 100%;
+      }
+
+      .lightbox-toolbar {
+        top: 8px;
+        right: 8px;
+        left: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        border-radius: 18px;
+      }
+
+      .lightbox-hint {
+        display: none;
+      }
+
+      .modal-panel {
+        padding: 18px;
+      }
+
       .page-title {
         font-size: clamp(26px, 8vw, 34px);
       }
@@ -1890,7 +2079,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.2.1</span>
+        <span class="app-version" id="appVersion">日行一页 v1.3.0</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -1923,6 +2112,9 @@
   <div class="lightbox-backdrop hidden" id="lightboxBackdrop" aria-hidden="true">
     <div class="lightbox-toolbar" id="lightboxToolbar">
       <span class="lightbox-hint">双击放大 · 滚轮缩放</span>
+      <button class="lightbox-btn" id="lightboxPrev" type="button" aria-label="上一张">‹</button>
+      <span class="lightbox-counter" id="lightboxCounter">1 / 1</span>
+      <button class="lightbox-btn" id="lightboxNext" type="button" aria-label="下一张">›</button>
       <button class="lightbox-btn" id="lightboxZoomOut" type="button" aria-label="缩小">−</button>
       <button class="lightbox-btn" id="lightboxZoomIn" type="button" aria-label="放大">＋</button>
       <button class="lightbox-btn" id="lightboxReset" type="button" aria-label="恢复原始大小">1:1</button>
@@ -1932,11 +2124,51 @@
       <img id="lightboxImage" src="" alt="日志图片预览">
     </div>
   </div>
+
+  <div class="modal-backdrop hidden" id="logDetailBackdrop" aria-hidden="true">
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="logDetailTitle">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="logDetailTitle"></h3>
+          <div class="item-meta" id="logDetailMeta"></div>
+        </div>
+        <button class="icon-btn" id="logDetailClose" type="button" aria-label="关闭日志详情">✕</button>
+      </div>
+      <p class="detail-body" id="logDetailBody"></p>
+      <div class="detail-images" id="logDetailImages"></div>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="logDetailEdit" type="button">编辑日志</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop hidden" id="archiveBackdrop" aria-hidden="true">
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="archiveTitle">
+      <div class="modal-head">
+        <div>
+          <h3 class="modal-title" id="archiveTitle">导出旧日志</h3>
+          <p class="archive-note">把指定日期之前的日志导出到电脑本地。第一版只导出，不会自动删除云端内容。</p>
+        </div>
+        <button class="icon-btn" id="archiveClose" type="button" aria-label="关闭导出窗口">✕</button>
+      </div>
+      <div class="archive-date-row">
+        <label for="archiveCutoff">导出这个日期之前的日志</label>
+        <input type="date" id="archiveCutoff">
+      </div>
+      <p class="archive-note" id="archiveCount">正在统计...</p>
+      <p class="archive-note">建议两个文件都导出：HTML 用来直接打开阅读，JSON 用于以后恢复。</p>
+      <div class="modal-actions">
+        <button class="ghost-btn" id="archiveExportJson" type="button">导出恢复文件</button>
+        <button class="primary-btn" id="archiveExportHtml" type="button">导出本地日记簿</button>
+      </div>
+    </section>
+  </div>
+
   <div class="schedule-tooltip hidden" id="scheduleTooltip" role="tooltip"></div>
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.2.1";
+    const APP_VERSION = "v1.3.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
@@ -1958,6 +2190,7 @@
     let scheduleWeekOffset = 0;
     let scheduleDayKey = todayKey;
     let draftSteps = [];
+    let draftLogImages = [];
     let draftNewGoalPlans = [];
     let draftGoalPlanSelections = new Set();
     let draftPlanGoalId = null;
@@ -1987,6 +2220,22 @@
     const lightboxZoomOut = document.getElementById("lightboxZoomOut");
     const lightboxReset = document.getElementById("lightboxReset");
     const lightboxToolbar = document.getElementById("lightboxToolbar");
+    const lightboxPrev = document.getElementById("lightboxPrev");
+    const lightboxNext = document.getElementById("lightboxNext");
+    const lightboxCounter = document.getElementById("lightboxCounter");
+    const logDetailBackdrop = document.getElementById("logDetailBackdrop");
+    const logDetailTitle = document.getElementById("logDetailTitle");
+    const logDetailMeta = document.getElementById("logDetailMeta");
+    const logDetailBody = document.getElementById("logDetailBody");
+    const logDetailImages = document.getElementById("logDetailImages");
+    const logDetailClose = document.getElementById("logDetailClose");
+    const logDetailEdit = document.getElementById("logDetailEdit");
+    const archiveBackdrop = document.getElementById("archiveBackdrop");
+    const archiveClose = document.getElementById("archiveClose");
+    const archiveCutoff = document.getElementById("archiveCutoff");
+    const archiveCount = document.getElementById("archiveCount");
+    const archiveExportHtml = document.getElementById("archiveExportHtml");
+    const archiveExportJson = document.getElementById("archiveExportJson");
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -2006,6 +2255,8 @@
     lightboxZoomIn.addEventListener("click", () => zoomLightboxBy(1.3));
     lightboxZoomOut.addEventListener("click", () => zoomLightboxBy(1 / 1.3));
     lightboxReset.addEventListener("click", () => setLightboxTransform(1, 0, 0));
+    lightboxPrev.addEventListener("click", () => showAdjacentLightboxImage(-1));
+    lightboxNext.addEventListener("click", () => showAdjacentLightboxImage(1));
     lightboxBackdrop.addEventListener("click", (event) => {
       if (event.target === lightboxBackdrop || event.target === lightboxViewport) closeLightbox();
     });
@@ -2028,10 +2279,40 @@
     lightboxViewport.addEventListener("pointerup", handleLightboxPointerUp);
     lightboxViewport.addEventListener("pointercancel", handleLightboxPointerUp);
 
+    logDetailClose.addEventListener("click", closeLogDetail);
+    logDetailBackdrop.addEventListener("click", (event) => {
+      if (event.target === logDetailBackdrop) closeLogDetail();
+    });
+    logDetailEdit.addEventListener("click", () => {
+      const logId = logDetailBackdrop.dataset.logId;
+      closeLogDetail();
+      if (logId) openDialog("log", logId);
+    });
+    logDetailBackdrop.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : event.target.parentElement;
+      if (openLogLightboxFromElement(target)) event.stopPropagation();
+    });
+
+    archiveClose.addEventListener("click", closeArchiveDialog);
+    archiveBackdrop.addEventListener("click", (event) => {
+      if (event.target === archiveBackdrop) closeArchiveDialog();
+    });
+    archiveCutoff.addEventListener("change", updateArchiveCount);
+    archiveExportHtml.addEventListener("click", () => exportLogArchive("html"));
+    archiveExportJson.addEventListener("click", () => exportLogArchive("json"));
+
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         if (!lightboxBackdrop.classList.contains("hidden")) {
           closeLightbox();
+          return;
+        }
+        if (!logDetailBackdrop.classList.contains("hidden")) {
+          closeLogDetail();
+          return;
+        }
+        if (!archiveBackdrop.classList.contains("hidden")) {
+          closeArchiveDialog();
           return;
         }
         if (dialogStack.length) {
@@ -2039,6 +2320,10 @@
         } else {
           closeDialog();
         }
+      }
+      if (!lightboxBackdrop.classList.contains("hidden")) {
+        if (event.key === "ArrowLeft") showAdjacentLightboxImage(-1);
+        if (event.key === "ArrowRight") showAdjacentLightboxImage(1);
       }
     });
 
@@ -2235,11 +2520,26 @@
               dueDate: plan.dueDate || null
             }))
           : [],
-        logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+        logs: Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [],
         schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
         checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
         links: Array.isArray(parsed.links) ? parsed.links : [],
         meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
+      };
+    }
+
+    function getLogImages(log) {
+      if (!log) return [];
+      if (Array.isArray(log.images)) return log.images.filter(Boolean);
+      return log.imageUrl ? [log.imageUrl] : [];
+    }
+
+    function normalizeLog(log) {
+      const images = getLogImages(log);
+      return {
+        ...log,
+        images,
+        imageUrl: images[0] || ""
       };
     }
 
@@ -2326,7 +2626,7 @@
                   dueDate: plan.dueDate || null
                 }))
             : [],
-          logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+          logs: Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [],
           schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
           checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
           links: Array.isArray(parsed.links) ? parsed.links : [],
@@ -3245,7 +3545,10 @@
             <p class="page-kicker">Reflection</p>
             <h1 class="page-title">日志</h1>
           </div>
-          <button class="primary-btn" data-open="log">＋ 写日志</button>
+          <div class="topbar-actions">
+            <button class="ghost-btn" id="exportLogsBtn" type="button">导出旧日志</button>
+            <button class="primary-btn" data-open="log">＋ 写日志</button>
+          </div>
         </header>
 
         <div class="toolbar">
@@ -3263,6 +3566,7 @@
         logsQuery = document.getElementById("logSearch").value;
         renderLogs();
       });
+      document.getElementById("exportLogsBtn")?.addEventListener("click", openArchiveDialog);
       const logSearch = document.getElementById("logSearch");
       if (logsQuery) {
         logSearch?.focus();
@@ -3278,13 +3582,25 @@
     }
 
     function logItem(log) {
+      const images = getLogImages(log);
+      const body = log.body || "";
+      const isLong = body.length > 120 || body.split(/\r?\n/).length > 4;
       return `
-        <article class="item">
+        <article class="item log-card" data-open-log="${escapeHtml(log.id)}">
           <div class="item-main">
             <div style="min-width:0;">
               <h3 class="item-title">${escapeHtml(log.title)}</h3>
-              ${log.body ? `<p class="log-body">${escapeHtml(log.body)}</p>` : ""}
-              ${log.imageUrl ? `<button type="button" class="log-image-button" data-lightbox="${escapeHtml(log.imageUrl)}"><img class="log-image" src="${escapeHtml(log.imageUrl)}" alt=""></button>` : ""}
+              ${body ? `<p class="log-body log-body-preview">${escapeHtml(body)}</p>` : ""}
+              ${isLong ? `<span class="log-detail-hint">点击查看详情</span>` : ""}
+              ${images.length ? `
+                <div class="log-images">
+                  ${images.map((src, index) => `
+                    <button type="button" class="log-image-button" data-lightbox-log="${escapeHtml(log.id)}" data-lightbox-index="${index}">
+                      <img class="log-image" src="${escapeHtml(src)}" alt="">
+                    </button>
+                  `).join("")}
+                </div>
+              ` : ""}
             </div>
             <div class="item-actions">
               <button class="icon-btn" data-edit="log" data-id="${log.id}" aria-label="编辑">✎</button>
@@ -3303,8 +3619,7 @@
     main.addEventListener("click", (event) => {
       const target = event.target instanceof Element ? event.target : event.target.parentElement;
       if (!target) return;
-      const lightboxSrc = target.closest("[data-lightbox]")?.dataset.lightbox;
-      if (lightboxSrc) return openLightbox(lightboxSrc);
+      if (openLogLightboxFromElement(target)) return;
       const planGoalId = target.closest("[data-plan-goal]")?.dataset.planGoal;
       if (planGoalId) {
         plansGoalFilter = planGoalId;
@@ -3333,6 +3648,9 @@
       const deleteType = target.closest("[data-delete]")?.dataset.delete;
       const deleteId = target.closest("[data-delete]")?.dataset.id;
       if (deleteType && deleteId) return deleteItem(deleteType, deleteId);
+
+      const detailId = target.closest("[data-open-log]")?.dataset.openLog;
+      if (detailId) return openLogDetail(detailId);
 
       const focusId = target.closest("[data-toggle-focus]")?.dataset.toggleFocus;
       if (focusId) return togglePlanFocus(focusId);
@@ -3454,7 +3772,8 @@
         });
       }
       if (type === "log") {
-        setupLogImagePicker(editing || {});
+        draftLogImages = getLogImages(editing || {}).slice(0, 9);
+        setupLogImagePicker();
       }
       dialogBackdrop.classList.remove("hidden");
       updateDialogBackButton();
@@ -3474,6 +3793,7 @@
       editing = null;
       dialogStack = [];
       draftSteps = [];
+      draftLogImages = [];
       draftNewGoalPlans = [];
       draftGoalPlanSelections = new Set();
       draftPlanGoalId = null;
@@ -3521,41 +3841,62 @@
       });
     }
 
-    function setupLogImagePicker(item = {}) {
+    function setupLogImagePicker() {
       const picker = document.getElementById("logImagePickBtn");
       const input = document.getElementById("logImageInput");
-      const preview = document.getElementById("logImagePreview");
-      const hidden = document.getElementById("logImageUrl");
-      if (!picker || !input || !preview || !hidden) return;
+      const grid = document.getElementById("logImagePickerGrid");
+      const hint = document.getElementById("logImagePickerHint");
+      if (!picker || !input || !grid || !hint) return;
 
-      const renderPreview = (src) => {
-        if (src) {
-          preview.src = src;
-          preview.classList.add("show");
-        } else {
-          preview.removeAttribute("src");
-          preview.classList.remove("show");
-        }
+      const renderImages = () => {
+        grid.innerHTML = draftLogImages.map((src, index) => `
+          <div class="log-image-picker-item">
+            <img src="${escapeHtml(src)}" alt="">
+            <button type="button" class="log-image-remove" data-remove-log-image="${index}" aria-label="删除这张照片">✕</button>
+          </div>
+        `).join("");
+        hint.textContent = `${draftLogImages.length} / 9 张`;
+        picker.disabled = draftLogImages.length >= 9;
+
+        grid.querySelectorAll("[data-remove-log-image]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const index = Number(button.dataset.removeLogImage);
+            draftLogImages.splice(index, 1);
+            renderImages();
+          });
+        });
       };
-
-      renderPreview(item.imageUrl || "");
 
       picker.addEventListener("click", () => input.click());
       input.addEventListener("change", async () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith("image/")) {
-          showToast("请选择图片文件");
-          return;
+        const files = [...(input.files || [])];
+        input.value = "";
+        if (!files.length) return;
+
+        const remaining = 9 - draftLogImages.length;
+        const selected = files.slice(0, remaining);
+        if (files.length > remaining) {
+          showToast(`一条日志最多 9 张，已选择前 ${remaining} 张`);
         }
-        try {
-          const compressed = await compressImage(file);
-          hidden.value = compressed;
-          renderPreview(compressed);
-        } catch (error) {
-          showToast("图片处理失败，请换一张试试");
+
+        for (const file of selected) {
+          if (!file.type.startsWith("image/")) {
+            showToast("有文件不是图片，已跳过");
+            continue;
+          }
+          try {
+            const compressed = await compressImage(file);
+            if (!draftLogImages.includes(compressed)) {
+              draftLogImages.push(compressed);
+              renderImages();
+            }
+          } catch (error) {
+            showToast("有图片处理失败，已跳过");
+          }
         }
       });
+
+      renderImages();
     }
 
     function compressImage(file) {
@@ -3856,10 +4197,12 @@
           <div class="field">
             <label>照片</label>
             <div class="log-image-picker">
-              <button type="button" class="ghost-btn" id="logImagePickBtn">＋ 从相册选择</button>
-              <input type="file" id="logImageInput" accept="image/*" class="hidden">
-              <img class="log-image-preview ${item.imageUrl ? "show" : ""}" id="logImagePreview" src="${escapeHtml(item.imageUrl || "")}" alt="">
-              <input type="hidden" name="imageUrl" id="logImageUrl" value="${escapeHtml(item.imageUrl || "")}">
+              <div class="log-image-picker-row">
+                <button type="button" class="ghost-btn" id="logImagePickBtn">＋ 从相册选择</button>
+                <span class="log-image-picker-hint" id="logImagePickerHint">最多 9 张</span>
+              </div>
+              <input type="file" id="logImageInput" accept="image/*" multiple class="hidden">
+              <div class="log-image-picker-grid" id="logImagePickerGrid"></div>
             </div>
           </div>
           <div class="dialog-actions">
@@ -4022,6 +4365,7 @@
 
       if (type === "log") {
         const tags = data.get("tags").split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
+        const images = draftLogImages.slice(0, 9);
         const item = {
           id: editing?.id || uid("log"),
           title: data.get("title").trim(),
@@ -4029,7 +4373,8 @@
           body: data.get("body").trim(),
           mood: data.get("mood"),
           tags,
-          imageUrl: data.get("imageUrl").trim(),
+          images,
+          imageUrl: images[0] || "",
           createdAt: editing?.createdAt || now,
           updatedAt: now
         };
@@ -4099,6 +4444,157 @@
       showToast(`${label}已删除`);
     }
 
+    function downloadTextFile(content, filename, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function dateKeyWithOffset(offsetDays) {
+      const date = new Date(`${todayKey}T00:00:00`);
+      date.setDate(date.getDate() + offsetDays);
+      return localDateKey(date);
+    }
+
+    function archiveLogsBefore(cutoff) {
+      return [...state.logs]
+        .filter((log) => (log.date || "") < cutoff)
+        .sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.createdAt || "").localeCompare(b.createdAt || ""));
+    }
+
+    function openArchiveDialog() {
+      if (!archiveCutoff.value) archiveCutoff.value = dateKeyWithOffset(-90);
+      updateArchiveCount();
+      archiveBackdrop.classList.remove("hidden");
+      archiveBackdrop.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeArchiveDialog() {
+      archiveBackdrop.classList.add("hidden");
+      archiveBackdrop.setAttribute("aria-hidden", "true");
+      syncBodyOverflow();
+    }
+
+    function updateArchiveCount() {
+      if (!archiveCutoff.value) return;
+      const logs = archiveLogsBefore(archiveCutoff.value);
+      if (!logs.length) {
+        archiveCount.textContent = "这个日期之前没有可导出的日志。";
+        return;
+      }
+      const first = formatDate(logs[0].date);
+      const last = formatDate(logs[logs.length - 1].date);
+      archiveCount.textContent = `将导出 ${logs.length} 条日志，时间范围：${first} 到 ${last}。`;
+    }
+
+    function buildArchiveHtml(archive) {
+      const cards = archive.logs.map((log) => {
+        const images = getLogImages(log).map((src) => `
+          <img src="${escapeHtml(src)}" alt="">
+        `).join("");
+        return `
+          <article class="entry">
+            <div class="entry-date">${escapeHtml(formatDate(log.date))}</div>
+            <h2>${escapeHtml(log.title || "无标题")}</h2>
+            ${log.body ? `<p>${escapeHtml(log.body)}</p>` : ""}
+            ${images ? `<div class="images">${images}</div>` : ""}
+            <div class="meta">${escapeHtml(moodLabel(log.mood))}${(log.tags || []).length ? " · " + log.tags.map(escapeHtml).join(" · ") : ""}</div>
+          </article>
+        `;
+      }).join("");
+
+      const recoveryJson = JSON.stringify(archive).replaceAll("<", "\\u003c");
+      return `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日行一页 · 本地日记簿</title>
+  <style>
+    :root { color-scheme: light; --paper:#f7f4ed; --surface:#fffdf8; --ink:#18231e; --muted:#66736c; --line:#e3ddd0; --green:#4a7c59; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:32px 18px 60px; background:linear-gradient(180deg,#eef3ec,var(--paper)); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+    .wrap { width:min(880px,100%); margin:0 auto; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:18px 0 24px; }
+    input,button { font:inherit; }
+    input { flex:1; min-width:220px; padding:11px 14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+    button { padding:11px 14px; border:0; border-radius:12px; background:var(--green); color:#fff; cursor:pointer; }
+    .entry { margin:0 0 16px; padding:20px; border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:0 10px 30px rgba(24,35,30,.05); }
+    .entry-date,.meta { color:var(--muted); font-size:13px; }
+    .entry h2 { margin:7px 0 10px; font-size:21px; }
+    .entry p { margin:0; white-space:pre-wrap; line-height:1.75; }
+    .images { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-top:14px; }
+    .images img { width:100%; border-radius:12px; object-fit:cover; }
+    .meta { margin-top:14px; }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>日行一页 · 本地日记簿</h1>
+    <p class="entry-date">导出时间：${escapeHtml(new Date().toLocaleString("zh-CN"))}</p>
+    <div class="toolbar">
+      <input id="search" placeholder="搜索标题或正文...">
+      <button id="downloadRecovery" type="button">下载恢复文件</button>
+    </div>
+    <div id="entries">${cards || "<p>没有日志。</p>"}</div>
+  </main>
+  \x3Cscript type="application/json" id="archiveRecoveryData">${recoveryJson}\x3C/script>
+  \x3Cscript>
+    const search = document.getElementById("search");
+    search.addEventListener("input", () => {
+      const q = search.value.trim().toLowerCase();
+      document.querySelectorAll(".entry").forEach((entry) => {
+        entry.classList.toggle("hidden", q && !entry.textContent.toLowerCase().includes(q));
+      });
+    });
+    document.getElementById("downloadRecovery").addEventListener("click", () => {
+      const data = document.getElementById("archiveRecoveryData").textContent;
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "日行一页-恢复文件-${escapeHtml(archive.cutoff)}.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  \x3C/script>
+</body>
+</html>`;
+    }
+
+    function exportLogArchive(format) {
+      const cutoff = archiveCutoff.value;
+      if (!cutoff) {
+        showToast("请先选择导出日期");
+        return;
+      }
+      const logs = archiveLogsBefore(cutoff);
+      if (!logs.length) {
+        showToast("没有符合条件的旧日志");
+        return;
+      }
+      const archive = {
+        type: "daypage-log-archive",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        cutoff,
+        logs: logs.map(normalizeLog)
+      };
+      if (format === "json") {
+        downloadTextFile(JSON.stringify(archive, null, 2), `日行一页-日志恢复-${cutoff}.json`, "application/json");
+        showToast(`已导出恢复文件：${logs.length} 条日志`);
+      } else {
+        downloadTextFile(buildArchiveHtml(archive), `日行一页-本地日记簿-${cutoff}.html`, "text/html");
+        showToast(`已导出本地日记簿：${logs.length} 条日志`);
+      }
+    }
+
     function exportData() {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -4117,6 +4613,14 @@
       reader.onload = () => {
         try {
           const parsed = JSON.parse(reader.result);
+          if (parsed.type === "daypage-log-archive" && Array.isArray(parsed.logs)) {
+            const existingIds = new Set(state.logs.map((log) => log.id));
+            const incoming = parsed.logs.map(normalizeLog).filter((log) => !existingIds.has(log.id));
+            state.logs = [...state.logs, ...incoming];
+            saveState();
+            showToast(`已恢复 ${incoming.length} 条旧日志`);
+            return;
+          }
           state.goals = Array.isArray(parsed.goals) ? parsed.goals : [];
           state.plans = Array.isArray(parsed.plans)
             ? parsed.plans.map((plan) => ({
@@ -4127,7 +4631,7 @@
               }))
             : [];
           state.schedules = Array.isArray(parsed.schedules) ? parsed.schedules : [];
-          state.logs = Array.isArray(parsed.logs) ? parsed.logs : [];
+          state.logs = Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [];
           saveState();
           showToast("数据已导入");
         } catch (error) {
@@ -4423,9 +4927,12 @@
     let lightboxScale = 1;
     let lightboxTranslateX = 0;
     let lightboxTranslateY = 0;
+    let lightboxImages = [];
+    let lightboxIndex = 0;
     let lightboxPointers = [];
     let lightboxDragStart = null;
     let lightboxPinchStart = null;
+    let lightboxSwipeStart = null;
 
     function setLightboxTransform(scale, x, y, immediate = false) {
       lightboxScale = Math.min(5, Math.max(1, scale));
@@ -4442,13 +4949,71 @@
       setLightboxTransform(nextScale, lightboxTranslateX, lightboxTranslateY, true);
     }
 
-    function openLightbox(src) {
-      if (!src) return;
-      lightboxImage.src = src;
+    function openLightbox(input, index = 0) {
+      const images = Array.isArray(input) ? input.filter(Boolean) : input ? [input] : [];
+      if (!images.length) return;
+      lightboxImages = images;
+      lightboxIndex = Math.min(Math.max(0, Number(index) || 0), images.length - 1);
+      lightboxImage.src = lightboxImages[lightboxIndex];
+      updateLightboxControls();
       setLightboxTransform(1, 0, 0, true);
       lightboxBackdrop.classList.remove("hidden");
       lightboxBackdrop.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
+    }
+
+    function updateLightboxControls() {
+      const multiple = lightboxImages.length > 1;
+      lightboxPrev.classList.toggle("hidden", !multiple);
+      lightboxNext.classList.toggle("hidden", !multiple);
+      lightboxCounter.classList.toggle("hidden", !multiple);
+      lightboxCounter.textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+    }
+
+    function showAdjacentLightboxImage(delta) {
+      if (lightboxImages.length < 2) return;
+      lightboxIndex = (lightboxIndex + delta + lightboxImages.length) % lightboxImages.length;
+      lightboxImage.src = lightboxImages[lightboxIndex];
+      updateLightboxControls();
+      setLightboxTransform(1, 0, 0, true);
+    }
+
+    function openLogLightboxFromElement(element) {
+      const button = element?.closest?.("[data-lightbox-log]");
+      if (!button) return false;
+      const log = state.logs.find((item) => item.id === button.dataset.lightboxLog);
+      if (!log) return false;
+      openLightbox(getLogImages(log), Number(button.dataset.lightboxIndex) || 0);
+      return true;
+    }
+
+    function openLogDetail(logId) {
+      const log = state.logs.find((item) => item.id === logId);
+      if (!log) return;
+      const images = getLogImages(log);
+      logDetailBackdrop.dataset.logId = log.id;
+      logDetailTitle.textContent = log.title || "日志";
+      logDetailMeta.innerHTML = `
+        <span>${escapeHtml(formatDate(log.date))}</span>
+        <span class="tag">${escapeHtml(moodLabel(log.mood))}</span>
+        ${(log.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
+      `;
+      logDetailBody.textContent = log.body || "没有正文。";
+      logDetailImages.innerHTML = images.map((src, index) => `
+        <button type="button" class="detail-image-button" data-lightbox-log="${escapeHtml(log.id)}" data-lightbox-index="${index}">
+          <img src="${escapeHtml(src)}" alt="">
+        </button>
+      `).join("");
+      logDetailBackdrop.classList.remove("hidden");
+      logDetailBackdrop.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLogDetail() {
+      logDetailBackdrop.classList.add("hidden");
+      logDetailBackdrop.setAttribute("aria-hidden", "true");
+      logDetailBackdrop.removeAttribute("data-log-id");
+      syncBodyOverflow();
     }
 
     function closeLightbox() {
@@ -4456,15 +5021,31 @@
       lightboxBackdrop.setAttribute("aria-hidden", "true");
       lightboxImage.removeAttribute("src");
       lightboxImage.style.transform = "";
+      lightboxImages = [];
+      lightboxIndex = 0;
       lightboxPointers = [];
       lightboxDragStart = null;
-      document.body.style.overflow = "";
+      lightboxPinchStart = null;
+      lightboxSwipeStart = null;
+      syncBodyOverflow();
+    }
+
+    function syncBodyOverflow() {
+      const modalOpen = !lightboxBackdrop.classList.contains("hidden")
+        || !logDetailBackdrop.classList.contains("hidden")
+        || !archiveBackdrop.classList.contains("hidden")
+        || !dialogBackdrop.classList.contains("hidden");
+      document.body.style.overflow = modalOpen ? "hidden" : "";
     }
 
     function handleLightboxPointerDown(event) {
       if (lightboxBackdrop.classList.contains("hidden")) return;
       lightboxPointers.push({ id: event.pointerId, x: event.clientX, y: event.clientY });
       if (lightboxPointers.length === 1) {
+        lightboxSwipeStart = {
+          x: event.clientX,
+          y: event.clientY,
+        };
         lightboxDragStart = {
           x: event.clientX,
           y: event.clientY,
@@ -4473,6 +5054,7 @@
         };
         lightboxImage.setPointerCapture?.(event.pointerId);
       } else if (lightboxPointers.length === 2) {
+        lightboxSwipeStart = null;
         lightboxDragStart = null;
         const [first, second] = lightboxPointers;
         lightboxPinchStart = {
@@ -4520,9 +5102,17 @@
 
     function handleLightboxPointerUp(event) {
       lightboxPointers = lightboxPointers.filter((pointer) => pointer.id !== event.pointerId);
+      if (lightboxPointers.length === 0 && lightboxSwipeStart && lightboxScale <= 1.01 && lightboxImages.length > 1) {
+        const dx = event.clientX - lightboxSwipeStart.x;
+        const dy = event.clientY - lightboxSwipeStart.y;
+        if (Math.abs(dx) > 54 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+          showAdjacentLightboxImage(dx < 0 ? 1 : -1);
+        }
+      }
       if (lightboxPointers.length === 0) {
         lightboxDragStart = null;
         lightboxPinchStart = null;
+        lightboxSwipeStart = null;
       } else if (lightboxPointers.length === 1 && lightboxScale > 1.01) {
         const [pointer] = lightboxPointers;
         lightboxDragStart = {
