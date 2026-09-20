@@ -2092,7 +2092,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.3.1</span>
+        <span class="app-version" id="appVersion">日行一页 v1.3.2</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -2181,7 +2181,7 @@
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.3.1";
+    const APP_VERSION = "v1.3.2";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
@@ -2190,6 +2190,10 @@
     let state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
     let authUser = null;
     let authToken = null;
+    let lastCloudUpdatedAt = null;
+    let cloudSyncInFlight = false;
+    let lastLocalCloudWriteAt = 0;
+    let cloudSyncTimer = null;
 
     let currentView = "today";
     let plansFilter = "active";
@@ -2562,7 +2566,7 @@
 
     async function loadCloudState() {
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.${SUPABASE_STATE_ID}&select=data`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.${SUPABASE_STATE_ID}&select=data,updated_at`, {
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -2575,6 +2579,7 @@
           const migrated = await migrateLegacyMainToUser();
           return migrated ? normalizeStateData(migrated) : loadState();
         }
+        lastCloudUpdatedAt = rows[0].updated_at || null;
         const parsed = rows[0].data || {};
         return normalizeStateData(parsed);
       } catch (error) {
@@ -2584,13 +2589,13 @@
 
     async function persistStateToCloud() {
       try {
-        await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
           method: "POST",
           headers: {
             apikey: SUPABASE_ANON_KEY,
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             "Content-Type": "application/json",
-            Prefer: "resolution=merge-duplicates"
+            Prefer: "resolution=merge-duplicates,return=representation"
           },
           body: JSON.stringify({
             id: SUPABASE_STATE_ID,
@@ -2598,8 +2603,49 @@
             updated_at: new Date().toISOString()
           })
         });
+        const rows = await response.json().catch(() => null);
+        if (Array.isArray(rows) && rows[0]?.updated_at) {
+          lastCloudUpdatedAt = rows[0].updated_at;
+        } else {
+          lastCloudUpdatedAt = new Date().toISOString();
+        }
+        lastLocalCloudWriteAt = Date.now();
       } catch (error) {
         // 本地仍可用，云端失败不阻断使用。
+      }
+    }
+
+    async function syncFromCloud() {
+      if (cloudSyncInFlight || document.hidden) return;
+      if (Date.now() - lastLocalCloudWriteAt < 5000) return;
+      const overlayOpen = !dialogBackdrop.classList.contains("hidden")
+        || !lightboxBackdrop.classList.contains("hidden")
+        || !logDetailBackdrop.classList.contains("hidden")
+        || !archiveBackdrop.classList.contains("hidden");
+      const activeTag = document.activeElement?.tagName;
+      if (overlayOpen || activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT") return;
+
+      cloudSyncInFlight = true;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.${SUPABASE_STATE_ID}&select=data,updated_at`, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Accept: "application/json"
+          }
+        });
+        if (!response.ok) return;
+        const rows = await response.json();
+        if (!Array.isArray(rows) || !rows.length) return;
+        const updatedAt = rows[0].updated_at || null;
+        if (!updatedAt || updatedAt === lastCloudUpdatedAt) return;
+        lastCloudUpdatedAt = updatedAt;
+        state = normalizeStateData(rows[0].data || {});
+        render();
+      } catch (error) {
+        // 云端暂不可用时保留当前页面，下一轮继续尝试。
+      } finally {
+        cloudSyncInFlight = false;
       }
     }
 
@@ -2618,12 +2664,11 @@
       autoGenerateCet6PlanOnce();
       persistStateToCloud();
       render();
-      if (parentMode) {
-        setInterval(async () => {
-          const freshState = await loadCloudState();
-          state = freshState;
-          render();
-        }, 15000);
+      if (!cloudSyncTimer) {
+        cloudSyncTimer = setInterval(syncFromCloud, 10000);
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) syncFromCloud();
+        });
       }
     }
 
