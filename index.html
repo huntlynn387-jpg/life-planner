@@ -197,6 +197,10 @@
       color: rgba(251, 252, 248, 0.65);
     }
 
+    .mobile-logout {
+      display: none;
+    }
+
     .sidebar-footer {
       margin-top: auto;
       display: grid;
@@ -1822,6 +1826,11 @@
         transform: none;
       }
 
+      .mobile-logout {
+        display: flex;
+        color: #a4341e;
+      }
+
       .nav-dot {
         display: none;
       }
@@ -2076,10 +2085,14 @@
           <span>日志</span>
           <span class="nav-count" data-count="logs">0</span>
         </button>
+        <button class="nav-btn mobile-logout" id="mobileLogoutBtn" type="button" aria-label="退出登录">
+          <span class="nav-dot"></span>
+          <span>退出</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.3.0</span>
+        <span class="app-version" id="appVersion">日行一页 v1.3.1</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -2168,7 +2181,7 @@
 
   <script>
     const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.3.0";
+    const APP_VERSION = "v1.3.1";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
@@ -2239,6 +2252,10 @@
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (btn.id === "mobileLogoutBtn") {
+          if (confirm("退出当前账号？退出后可以用主账号重新登录。")) logout();
+          return;
+        }
         document.body.classList.remove("more-open");
         if (btn.dataset.view === "plans") plansGoalFilter = "";
         switchView(btn.dataset.view);
