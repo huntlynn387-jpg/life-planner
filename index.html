@@ -197,10 +197,6 @@
       color: rgba(251, 252, 248, 0.65);
     }
 
-    .mobile-logout {
-      display: none;
-    }
-
     .sidebar-footer {
       margin-top: auto;
       display: grid;
@@ -214,7 +210,7 @@
       letter-spacing: 0.04em;
     }
 
-    .parent-banner {
+    .readonly-banner {
       padding: 9px 16px;
       background: var(--ink);
       color: var(--surface);
@@ -1111,6 +1107,59 @@
       margin-top: 20px;
     }
 
+    .account-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .account-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .account-row {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper-deep);
+    }
+
+    .account-row-main {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .account-token {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+    }
+
+    .account-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .account-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
     .archive-date-row {
       display: grid;
       gap: 8px;
@@ -1598,6 +1647,19 @@
       resize: vertical;
     }
 
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .checkbox-row input {
+      margin-top: 3px;
+    }
+
     .form-row {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1636,16 +1698,15 @@
       display: none !important;
     }
 
-    body.parent-mode [data-open],
-    body.parent-mode [data-edit],
-    body.parent-mode [data-delete],
-    body.parent-mode [data-toggle],
-    body.parent-mode [data-toggle-focus],
-    body.parent-mode [data-toggle-step],
-    body.parent-mode .check,
-    body.parent-mode .step-check,
-    body.parent-mode .focus-btn,
-    body.parent-mode .sidebar-footer {
+    body.readonly-mode [data-open],
+    body.readonly-mode [data-edit],
+    body.readonly-mode [data-delete],
+    body.readonly-mode [data-toggle],
+    body.readonly-mode [data-toggle-focus],
+    body.readonly-mode [data-toggle-step],
+    body.readonly-mode .check,
+    body.readonly-mode .step-check,
+    body.readonly-mode .focus-btn {
       display: none !important;
     }
 
@@ -1824,11 +1885,6 @@
         color: var(--ink);
         background: rgba(229, 172, 60, 0.18);
         transform: none;
-      }
-
-      .mobile-logout {
-        display: flex;
-        color: #a4341e;
       }
 
       .nav-dot {
@@ -2085,20 +2141,19 @@
           <span>日志</span>
           <span class="nav-count" data-count="logs">0</span>
         </button>
-        <button class="nav-btn mobile-logout" id="mobileLogoutBtn" type="button" aria-label="退出登录">
+        <button class="nav-btn" data-view="account">
           <span class="nav-dot"></span>
-          <span>退出</span>
+          <span>账户</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.3.2</span>
+        <span class="app-version" id="appVersion">日行一页 v1.4.0</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
         <button class="text-btn" id="generateHomeworkBtn">生成作业计划</button>
         <button class="text-btn" id="generateCet6Btn">生成六级计划</button>
-        <button class="text-btn" id="copyParentLinkBtn">复制家长链接</button>
         <button class="text-btn" id="logoutBtn">退出登录</button>
         <button class="text-btn" id="sampleBtn">填入示例数据</button>
         <input type="file" id="importFile" accept="application/json" class="hidden">
@@ -2180,16 +2235,22 @@
   <div class="schedule-tooltip hidden" id="scheduleTooltip" role="tooltip"></div>
 
   <script>
-    const STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.3.2";
+    let STORAGE_KEY = "daypage_state_v1";
+    const APP_VERSION = "v1.4.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
     const AUTH_STORAGE_KEY = "daypage_auth";
+    const ACCOUNT_INDEX_STATE_ID = "accounts_index";
+    const MASTER_ACCOUNT_ID = "master";
+    const DEFAULT_MASTER_TOKEN = "85167098";
+    const DEFAULT_MASTER_STATE_ID = "user_6ed1b32c-3b15-40bc-8c85-a6061a63cadb";
     const todayKey = localDateKey(new Date());
     let state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
     let authUser = null;
     let authToken = null;
+    let currentAccount = null;
+    let accountIndex = null;
     let lastCloudUpdatedAt = null;
     let cloudSyncInFlight = false;
     let lastLocalCloudWriteAt = 0;
@@ -2216,7 +2277,6 @@
     let editing = null;
     let dialogType = null;
     let dialogStack = [];
-    let parentMode = false;
     let toastTimer = null;
 
     const main = document.getElementById("main");
@@ -2256,10 +2316,6 @@
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        if (btn.id === "mobileLogoutBtn") {
-          if (confirm("退出当前账号？退出后可以用主账号重新登录。")) logout();
-          return;
-        }
         document.body.classList.remove("more-open");
         if (btn.dataset.view === "plans") plansGoalFilter = "";
         switchView(btn.dataset.view);
@@ -2356,109 +2412,151 @@
     document.getElementById("importCourseBtn").addEventListener("click", importCourseSchedule);
     document.getElementById("generateHomeworkBtn").addEventListener("click", generateHomeworkPlans);
     document.getElementById("generateCet6Btn").addEventListener("click", generateCet6Plan);
-    document.getElementById("copyParentLinkBtn").addEventListener("click", copyParentLink);
     document.getElementById("logoutBtn").addEventListener("click", logout);
     document.getElementById("sampleBtn").addEventListener("click", loadSampleData);
 
     initAuth();
 
-    function phoneEmail(phone) {
-      return `${String(phone).replace(/\D/g, "")}@phone.local`;
+    function generateToken() {
+      return String(Math.floor(10000000 + Math.random() * 90000000));
     }
 
-    async function authFetch(path, options = {}) {
-      const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
-        ...options,
+    function normalizeAccountIndex(data) {
+      const source = data && typeof data === "object" ? data : {};
+      return {
+        version: 1,
+        masterAccountId: MASTER_ACCOUNT_ID,
+        masterStateId: source.masterStateId || DEFAULT_MASTER_STATE_ID,
+        masterToken: String(source.masterToken || DEFAULT_MASTER_TOKEN),
+        accounts: Array.isArray(source.accounts) ? source.accounts.map((account) => ({
+          id: account.id,
+          name: account.name || "子账户",
+          type: account.type === "shared" ? "shared" : "independent",
+          stateId: account.stateId || account.id,
+          token: String(account.token || ""),
+          readOnly: account.type === "shared" ? account.readOnly !== false : false,
+          disabled: Boolean(account.disabled),
+          ownerId: account.ownerId || MASTER_ACCOUNT_ID,
+          createdAt: account.createdAt || new Date().toISOString(),
+          updatedAt: account.updatedAt || new Date().toISOString()
+        })).filter((account) => account.id && account.token) : []
+      };
+    }
+
+    async function saveAccountIndex(index = accountIndex) {
+      if (!index) return;
+      accountIndex = normalizeAccountIndex(index);
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
+        method: "POST",
         headers: {
           apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           "Content-Type": "application/json",
-          ...(options.headers || {})
-        }
+          Prefer: "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({
+          id: ACCOUNT_INDEX_STATE_ID,
+          data: accountIndex,
+          updated_at: new Date().toISOString()
+        })
       });
-      const text = await response.text();
-      let data = {};
-      try { data = JSON.parse(text); } catch (error) {}
-      if (!response.ok) {
-        throw new Error(data.msg || data.error_description || data.message || "登录失败，请检查手机号和密码");
-      }
-      return data;
+      if (!response.ok) throw new Error("账户数据保存失败");
     }
 
-    function saveAuthSession(session) {
-      authToken = session.access_token;
-      authUser = session.user;
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ access_token: session.access_token, user: session.user }));
-      SUPABASE_STATE_ID = `user_${session.user.id}`;
+    async function loadAccountIndex() {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.${ACCOUNT_INDEX_STATE_ID}&select=data`, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Accept: "application/json"
+        }
+      });
+      if (!response.ok) throw new Error("账户数据加载失败");
+      const rows = await response.json();
+      if (Array.isArray(rows) && rows.length && rows[0].data) {
+        accountIndex = normalizeAccountIndex(rows[0].data);
+        return accountIndex;
+      }
+      accountIndex = normalizeAccountIndex({});
+      await saveAccountIndex(accountIndex);
+      return accountIndex;
+    }
+
+    function accountFromToken(token) {
+      if (!accountIndex) return null;
+      const normalized = String(token || "").trim();
+      if (!normalized) return null;
+      if (normalized === String(accountIndex.masterToken)) {
+        return {
+          id: MASTER_ACCOUNT_ID,
+          name: "我的主账号",
+          type: "master",
+          stateId: accountIndex.masterStateId,
+          canEdit: true,
+          readOnly: false,
+          isMaster: true
+        };
+      }
+      const account = accountIndex.accounts.find((item) => item.token === normalized && !item.disabled);
+      if (!account) return null;
+      return {
+        ...account,
+        canEdit: !(account.type === "shared" && account.readOnly),
+        readOnly: account.type === "shared" && account.readOnly,
+        isMaster: false
+      };
+    }
+
+    function saveTokenSession(token) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token }));
     }
 
     function clearAuthSession() {
+      currentAccount = null;
       authToken = null;
       authUser = null;
       localStorage.removeItem(AUTH_STORAGE_KEY);
       SUPABASE_STATE_ID = "main";
     }
 
-    function renderAuth(mode = "login") {
+    function renderAuth() {
       document.body.classList.add("auth-mode");
-      document.body.classList.remove("parent-mode");
+      document.body.classList.remove("readonly-mode");
+      document.querySelector(".readonly-banner")?.remove();
       renderRoot.innerHTML = `
         <div class="auth-shell">
           <div class="auth-brand">
             <h1>日行一页</h1>
-            <p>用计划和日志，把每天过清楚</p>
+            <p>输入账户令牌，回到你自己的页面</p>
           </div>
           <section class="auth-card">
-            <div class="auth-tabs">
-              <button class="auth-tab ${mode === "login" ? "active" : ""}" data-auth-mode="login">登录</button>
-              <button class="auth-tab ${mode === "register" ? "active" : ""}" data-auth-mode="register">注册</button>
-            </div>
             <form class="auth-form" id="authForm">
               <div class="field">
-                <label for="authPhone">手机号</label>
-                <input id="authPhone" type="tel" autocomplete="tel" placeholder="请输入手机号" required>
+                <label for="authToken">账户令牌</label>
+                <input id="authToken" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="请输入 8 位令牌" maxlength="12" required>
               </div>
-              <div class="field">
-                <label for="authPassword">密码</label>
-                <input id="authPassword" type="password" autocomplete="${mode === "login" ? "current-password" : "new-password"}" placeholder="请输入密码" required>
-              </div>
-              ${mode === "register" ? `<div class="field"><label for="authName">称呼</label><input id="authName" type="text" autocomplete="nickname" placeholder="例如：子涵"></div>` : ""}
               <div class="auth-error" id="authError"></div>
-              <button class="primary-btn" type="submit">${mode === "login" ? "登录" : "注册并进入"}</button>
+              <button class="primary-btn" type="submit">进入账户</button>
             </form>
           </section>
         </div>
       `;
-
-      document.querySelectorAll("[data-auth-mode]").forEach((btn) => {
-        btn.addEventListener("click", () => renderAuth(btn.dataset.authMode));
-      });
       document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
     }
 
     async function handleAuthSubmit(event) {
       event.preventDefault();
-      const phone = document.getElementById("authPhone").value.trim();
-      const password = document.getElementById("authPassword").value;
-      const name = document.getElementById("authName")?.value.trim() || "用户";
+      const token = document.getElementById("authToken").value.trim();
       const errorBox = document.getElementById("authError");
       errorBox.classList.remove("show");
       errorBox.textContent = "";
-
       try {
-        if (document.querySelector(".auth-tab.active")?.dataset.authMode === "register") {
-          const session = await authFetch("signup", {
-            method: "POST",
-            body: JSON.stringify({ email: phoneEmail(phone), password, data: { phone, display_name: name } })
-          });
-          saveAuthSession(session);
-        } else {
-          const session = await authFetch("token?grant_type=password", {
-            method: "POST",
-            body: JSON.stringify({ email: phoneEmail(phone), password })
-          });
-          saveAuthSession(session);
-        }
-
+        await loadAccountIndex();
+        const account = accountFromToken(token);
+        if (!account) throw new Error("令牌不正确，或者这个账户已经被停用");
+        currentAccount = account;
+        SUPABASE_STATE_ID = account.stateId;
+        saveTokenSession(token);
         document.body.classList.remove("auth-mode");
         await initApp();
       } catch (error) {
@@ -2468,38 +2566,32 @@
     }
 
     async function initAuth() {
-      parentMode = new URLSearchParams(location.search).has("parent");
       try {
         const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (raw) {
-          const saved = JSON.parse(raw);
-          if (saved?.access_token && saved?.user?.id) {
-            authToken = saved.access_token;
-            authUser = saved.user;
-            SUPABASE_STATE_ID = `user_${saved.user.id}`;
-            document.body.classList.remove("auth-mode");
-            await initApp();
-            return;
-          }
+        const saved = raw ? JSON.parse(raw) : null;
+        await loadAccountIndex();
+        const account = accountFromToken(saved?.token);
+        if (account) {
+          currentAccount = account;
+          SUPABASE_STATE_ID = account.stateId;
+          document.body.classList.remove("auth-mode");
+          await initApp();
+          return;
         }
-      } catch (error) {}
-
-      if (parentMode) {
-        SUPABASE_STATE_ID = "main";
-        document.body.classList.remove("auth-mode");
-        await initApp();
-        return;
+      } catch (error) {
+        // 网络不可用时仍展示登录页，登录时会再次尝试。
       }
-
-      renderAuth("login");
+      clearAuthSession();
+      renderAuth();
     }
 
     function logout() {
       clearAuthSession();
       state = { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} };
       document.body.classList.add("auth-mode");
-      document.body.classList.remove("parent-mode");
-      renderAuth("login");
+      document.body.classList.remove("readonly-mode");
+      document.querySelector(".readonly-banner")?.remove();
+      renderAuth();
     }
 
     async function migrateLegacyMainToUser() {
@@ -2576,8 +2668,11 @@
         if (!response.ok) return loadState();
         const rows = await response.json();
         if (!Array.isArray(rows) || !rows.length) {
-          const migrated = await migrateLegacyMainToUser();
-          return migrated ? normalizeStateData(migrated) : loadState();
+          if (currentAccount?.isMaster) {
+            const migrated = await migrateLegacyMainToUser();
+            return migrated ? normalizeStateData(migrated) : loadState();
+          }
+          return loadState();
         }
         lastCloudUpdatedAt = rows[0].updated_at || null;
         const parsed = rows[0].data || {};
@@ -2588,6 +2683,7 @@
     }
 
     async function persistStateToCloud() {
+      if (currentAccount?.readOnly) return;
       try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
           method: "POST",
@@ -2616,6 +2712,7 @@
     }
 
     async function syncFromCloud() {
+      if (!currentAccount || document.body.classList.contains("auth-mode")) return;
       if (cloudSyncInFlight || document.hidden) return;
       if (Date.now() - lastLocalCloudWriteAt < 5000) return;
       const overlayOpen = !dialogBackdrop.classList.contains("hidden")
@@ -2650,25 +2747,33 @@
     }
 
     async function initApp() {
+      STORAGE_KEY = `daypage_state_v1_${SUPABASE_STATE_ID}`;
       state = await loadCloudState();
-      parentMode = new URLSearchParams(location.search).has("parent");
-      if (parentMode) {
-        document.body.classList.add("parent-mode");
-        const banner = document.createElement("div");
-        banner.className = "parent-banner";
-        banner.textContent = "家长只读模式 · 数据实时来自孩子";
-        document.body.prepend(banner);
+      applyAccountMode();
+      if (currentAccount?.isMaster) {
+        autoImportCourseScheduleOnce();
+        autoGenerateHomeworkPlansOnce();
+        autoGenerateCet6PlanOnce();
       }
-      autoImportCourseScheduleOnce();
-      autoGenerateHomeworkPlansOnce();
-      autoGenerateCet6PlanOnce();
-      persistStateToCloud();
+      if (currentAccount?.canEdit) persistStateToCloud();
       render();
       if (!cloudSyncTimer) {
         cloudSyncTimer = setInterval(syncFromCloud, 10000);
         document.addEventListener("visibilitychange", () => {
           if (!document.hidden) syncFromCloud();
         });
+      }
+    }
+
+    function applyAccountMode() {
+      const readOnly = Boolean(currentAccount?.readOnly);
+      document.body.classList.toggle("readonly-mode", readOnly);
+      document.querySelector(".readonly-banner")?.remove();
+      if (readOnly) {
+        const banner = document.createElement("div");
+        banner.className = "readonly-banner";
+        banner.textContent = `只读账户 · ${currentAccount?.name || "共享查看"}`;
+        document.body.prepend(banner);
       }
     }
 
@@ -2700,6 +2805,10 @@
     }
 
     function saveState() {
+      if (currentAccount?.readOnly) {
+        showToast("当前是只读账户，不能修改内容");
+        return;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       persistStateToCloud();
       render();
@@ -2888,6 +2997,7 @@
       if (currentView === "checklists") renderChecklists();
       if (currentView === "links") renderLinks();
       if (currentView === "logs") renderLogs();
+      if (currentView === "account") renderAccount();
     }
 
     function updateNavCounts() {
@@ -3636,6 +3746,326 @@
       }
     }
 
+    function renderAccount() {
+      if (!currentAccount || !accountIndex) return;
+      const isMaster = Boolean(currentAccount.isMaster);
+      const ownToken = isMaster ? accountIndex.masterToken : currentAccount.token;
+      const children = isMaster ? accountIndex.accounts : [];
+      renderRoot.innerHTML = `
+        <header class="topbar">
+          <div>
+            <p class="page-kicker">Account</p>
+            <h1 class="page-title">账户</h1>
+          </div>
+          <button class="ghost-btn" id="accountLogoutBtn" type="button">退出登录</button>
+        </header>
+
+        <div class="account-grid">
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">当前账户</h2>
+              <span class="tag">${isMaster ? "主账号" : currentAccount.type === "shared" ? "共享账户" : "独立子账户"}</span>
+            </div>
+            <p class="account-note">账户名称：${escapeHtml(currentAccount.name || "未命名")}</p>
+            <p class="account-note">当前令牌：<span class="account-token">${escapeHtml(ownToken || "")}</span></p>
+            <div class="field">
+              <label for="ownTokenInput">修改我的令牌（8 位数字）</label>
+              <input id="ownTokenInput" inputmode="numeric" maxlength="8" value="${escapeHtml(ownToken || "")}">
+            </div>
+            <div class="account-actions">
+              <button class="primary-btn" id="saveOwnTokenBtn" type="button">保存新令牌</button>
+              <button class="ghost-btn" data-copy-token="${escapeHtml(ownToken || "")}" type="button">复制令牌</button>
+            </div>
+          </section>
+
+          ${isMaster ? `
+            <section class="card">
+              <div class="card-header">
+                <h2 class="card-title">新建子账户</h2>
+              </div>
+              <div class="field">
+                <label for="newAccountName">账户名称</label>
+                <input id="newAccountName" maxlength="30" placeholder="例如：爸爸、妈妈、朋友">
+              </div>
+              <div class="field">
+                <label for="newAccountType">账户类型</label>
+                <select id="newAccountType">
+                  <option value="independent">独立账户（有自己的内容，本人可修改）</option>
+                  <option value="shared">共享查看账户（查看我的主账号内容）</option>
+                </select>
+              </div>
+              <label class="checkbox-row">
+                <input type="checkbox" id="newAccountAllowEdit">
+                <span>共享查看账户允许对方修改（不勾选则为只读）</span>
+              </label>
+              <div class="account-actions">
+                <button class="primary-btn" id="createSubAccountBtn" type="button">生成子账户</button>
+              </div>
+            </section>
+          ` : ""}
+        </div>
+
+        ${isMaster ? `
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">子账户管理</h2>
+            </div>
+            ${children.length ? `
+              <div class="account-list">
+                ${children.map((account) => `
+                  <div class="account-row">
+                    <div class="account-row-main">
+                      <div>
+                        <strong>${escapeHtml(account.name)}</strong>
+                        <div class="item-meta">
+                          <span class="tag">${account.type === "shared" ? "共享查看" : "独立账户"}</span>
+                          <span class="tag">${account.type === "shared" ? (account.readOnly ? "只读" : "可修改") : "本人可修改"}</span>
+                          <span class="tag">${account.disabled ? "已停用" : "正常"}</span>
+                        </div>
+                      </div>
+                      <span class="account-token">${escapeHtml(account.token)}</span>
+                    </div>
+                    <div class="account-actions">
+                      <button class="ghost-btn" data-copy-account-token="${escapeHtml(account.id)}" type="button">复制令牌</button>
+                      <button class="ghost-btn" data-preview-account="${escapeHtml(account.id)}" type="button">查看内容</button>
+                      <button class="ghost-btn" data-edit-account-token="${escapeHtml(account.id)}" type="button">修改令牌</button>
+                      <button class="ghost-btn" data-reset-account-token="${escapeHtml(account.id)}" type="button">重置令牌</button>
+                      <button class="ghost-btn" data-toggle-account="${escapeHtml(account.id)}" type="button">${account.disabled ? "启用" : "停用"}</button>
+                      <button class="ghost-btn" data-delete-account="${escapeHtml(account.id)}" type="button">删除</button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `<div class="empty"><div><strong>还没有子账户</strong>新建后，把令牌交给对方即可登录。</div></div>`}
+          </section>
+        ` : ""}
+      `;
+
+      document.getElementById("accountLogoutBtn")?.addEventListener("click", logout);
+      document.getElementById("saveOwnTokenBtn")?.addEventListener("click", async () => {
+        const input = document.getElementById("ownTokenInput");
+        const nextToken = input?.value.trim() || "";
+        await changeOwnToken(nextToken);
+      });
+      document.querySelectorAll("[data-copy-token], [data-copy-account-token]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const token = button.dataset.copyToken || accountIndex.accounts.find((item) => item.id === button.dataset.copyAccountToken)?.token;
+          if (!token) return;
+          await copyText(token);
+        });
+      });
+      document.getElementById("createSubAccountBtn")?.addEventListener("click", async () => {
+        const name = document.getElementById("newAccountName")?.value.trim() || "";
+        const type = document.getElementById("newAccountType")?.value || "independent";
+        const allowEdit = Boolean(document.getElementById("newAccountAllowEdit")?.checked);
+        await createSubAccount(name, type, allowEdit);
+      });
+      const accountTypeSelect = document.getElementById("newAccountType");
+      const allowEditRow = document.getElementById("newAccountAllowEdit")?.closest(".checkbox-row");
+      const syncAllowEditVisibility = () => {
+        allowEditRow?.classList.toggle("hidden", accountTypeSelect?.value !== "shared");
+      };
+      accountTypeSelect?.addEventListener("change", syncAllowEditVisibility);
+      syncAllowEditVisibility();
+      document.querySelectorAll("[data-reset-account-token]").forEach((button) => {
+        button.addEventListener("click", () => resetChildToken(button.dataset.resetAccountToken));
+      });
+      document.querySelectorAll("[data-edit-account-token]").forEach((button) => {
+        button.addEventListener("click", () => editChildToken(button.dataset.editAccountToken));
+      });
+      document.querySelectorAll("[data-preview-account]").forEach((button) => {
+        button.addEventListener("click", () => previewChildAccount(button.dataset.previewAccount));
+      });
+      document.querySelectorAll("[data-toggle-account]").forEach((button) => {
+        button.addEventListener("click", () => toggleChildAccount(button.dataset.toggleAccount));
+      });
+      document.querySelectorAll("[data-delete-account]").forEach((button) => {
+        button.addEventListener("click", () => deleteChildAccount(button.dataset.deleteAccount));
+      });
+    }
+
+    function isTokenUsed(token, exceptAccountId = "") {
+      if (!accountIndex) return false;
+      if (token === accountIndex.masterToken && exceptAccountId !== MASTER_ACCOUNT_ID) return true;
+      return accountIndex.accounts.some((account) => account.token === token && account.id !== exceptAccountId);
+    }
+
+    function nextUniqueToken() {
+      let token = generateToken();
+      let attempts = 0;
+      while (isTokenUsed(token) && attempts < 30) {
+        token = generateToken();
+        attempts += 1;
+      }
+      return token;
+    }
+
+    async function copyText(value) {
+      try {
+        await navigator.clipboard.writeText(String(value));
+        showToast("令牌已复制");
+      } catch (error) {
+        showToast(String(value));
+      }
+    }
+
+    async function saveFamilyState(stateId, data) {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({
+          id: stateId,
+          data,
+          updated_at: new Date().toISOString()
+        })
+      });
+      if (!response.ok) throw new Error("账户内容初始化失败");
+    }
+
+    async function changeOwnToken(nextToken) {
+      const token = String(nextToken).replace(/\D/g, "");
+      if (token.length !== 8) {
+        showToast("令牌需要是 8 位数字");
+        return;
+      }
+      if (isTokenUsed(token, currentAccount.id)) {
+        showToast("这个令牌已经被其他账户使用");
+        return;
+      }
+      try {
+        if (currentAccount.isMaster) {
+          accountIndex.masterToken = token;
+        } else {
+          const child = accountIndex.accounts.find((item) => item.id === currentAccount.id);
+          if (!child) return;
+          child.token = token;
+          child.updatedAt = new Date().toISOString();
+        }
+        await saveAccountIndex(accountIndex);
+        currentAccount.token = token;
+        saveTokenSession(token);
+        showToast("我的令牌已更新");
+        renderAccount();
+      } catch (error) {
+        showToast(error.message || "令牌更新失败");
+      }
+    }
+
+    async function createSubAccount(name, type, allowEdit) {
+      if (!name) {
+        showToast("请填写账户名称");
+        return;
+      }
+      const token = nextUniqueToken();
+      const account = {
+        id: uid("acct"),
+        name,
+        type: type === "shared" ? "shared" : "independent",
+        stateId: type === "shared" ? accountIndex.masterStateId : "",
+        token,
+        readOnly: type === "shared" ? !allowEdit : false,
+        disabled: false,
+        ownerId: MASTER_ACCOUNT_ID,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (account.type === "independent") {
+        account.stateId = account.id;
+        await saveFamilyState(account.stateId, { goals: [], plans: [], logs: [], schedules: [], checklists: [], links: [], meta: {} });
+      }
+      accountIndex.accounts.push(account);
+      await saveAccountIndex(accountIndex);
+      showToast(`子账户已创建，令牌：${token}`);
+      renderAccount();
+    }
+
+    async function resetChildToken(accountId) {
+      const child = accountIndex.accounts.find((item) => item.id === accountId);
+      if (!child) return;
+      child.token = nextUniqueToken();
+      child.updatedAt = new Date().toISOString();
+      await saveAccountIndex(accountIndex);
+      showToast(`新令牌：${child.token}`);
+      renderAccount();
+    }
+
+    async function editChildToken(accountId) {
+      const child = accountIndex.accounts.find((item) => item.id === accountId);
+      if (!child) return;
+      const input = prompt("请输入新的 8 位令牌", child.token);
+      if (input === null) return;
+      const token = String(input).replace(/\D/g, "");
+      if (token.length !== 8) {
+        showToast("令牌需要是 8 位数字");
+        return;
+      }
+      if (isTokenUsed(token, child.id)) {
+        showToast("这个令牌已经被其他账户使用");
+        return;
+      }
+      child.token = token;
+      child.updatedAt = new Date().toISOString();
+      await saveAccountIndex(accountIndex);
+      showToast("子账户令牌已修改");
+      renderAccount();
+    }
+
+    async function toggleChildAccount(accountId) {
+      const child = accountIndex.accounts.find((item) => item.id === accountId);
+      if (!child) return;
+      child.disabled = !child.disabled;
+      child.updatedAt = new Date().toISOString();
+      await saveAccountIndex(accountIndex);
+      showToast(child.disabled ? "子账户已停用" : "子账户已启用");
+      renderAccount();
+    }
+
+    async function deleteChildAccount(accountId) {
+      const child = accountIndex.accounts.find((item) => item.id === accountId);
+      if (!child) return;
+      if (!confirm(`确定删除子账户“${child.name}”吗？`)) return;
+      accountIndex.accounts = accountIndex.accounts.filter((item) => item.id !== accountId);
+      await saveAccountIndex(accountIndex);
+      showToast("子账户已删除，云端历史数据保留作备份");
+      renderAccount();
+    }
+
+    async function previewChildAccount(accountId) {
+      const child = accountIndex.accounts.find((item) => item.id === accountId);
+      if (!child) return;
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/family_state?id=eq.${child.stateId}&select=data`, {
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            Accept: "application/json"
+          }
+        });
+        if (!response.ok) throw new Error("内容读取失败");
+        const rows = await response.json();
+        const previewState = normalizeStateData(rows?.[0]?.data || {});
+        logDetailTitle.textContent = `${child.name} · 内容概览`;
+        logDetailMeta.innerHTML = `
+          <span class="tag">${child.type === "shared" ? "共享查看" : "独立账户"}</span>
+          <span class="tag">${child.disabled ? "已停用" : "正常"}</span>
+        `;
+        const logTitles = previewState.logs.slice(0, 5).map((log) => `· ${log.title}`).join("\n") || "暂无日志";
+        logDetailBody.textContent = `目标：${previewState.goals.length} 个\n计划：${previewState.plans.length} 条\n日志：${previewState.logs.length} 条\n日程：${previewState.schedules.length} 条\n\n最近日志：\n${logTitles}`;
+        logDetailImages.innerHTML = "";
+        logDetailEdit.classList.add("hidden");
+        logDetailBackdrop.classList.remove("hidden");
+        logDetailBackdrop.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      } catch (error) {
+        showToast(error.message || "内容读取失败");
+      }
+    }
+
     function filteredLogs() {
       const query = logsQuery.trim().toLowerCase();
       return [...state.logs]
@@ -3811,6 +4241,10 @@
     }
 
     function openDialog(type, id = null, keepStack = false) {
+      if (currentAccount?.readOnly) {
+        showToast("当前是只读账户，不能修改内容");
+        return;
+      }
       if (!keepStack) dialogStack = [];
       dialogType = type;
       editing = id ? findItem(type, id) : null;
@@ -4976,16 +5410,6 @@
       showToast("示例数据已填入");
     }
 
-    async function copyParentLink() {
-      const url = `${location.origin}${location.pathname}?parent=1`;
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast("家长链接已复制");
-      } catch (error) {
-        showToast(`请手动复制：${url}`);
-      }
-    }
-
     let lightboxScale = 1;
     let lightboxTranslateX = 0;
     let lightboxTranslateY = 0;
@@ -5061,6 +5485,7 @@
         ${(log.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
       `;
       logDetailBody.textContent = log.body || "没有正文。";
+      logDetailEdit.classList.remove("hidden");
       logDetailImages.innerHTML = images.map((src, index) => `
         <button type="button" class="detail-image-button" data-lightbox-log="${escapeHtml(log.id)}" data-lightbox-index="${index}">
           <img src="${escapeHtml(src)}" alt="">
