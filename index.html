@@ -593,6 +593,19 @@
       word-break: break-word;
     }
 
+    .link-related {
+      display: grid;
+      gap: 4px;
+      margin-top: 7px;
+      font-size: 13px;
+    }
+
+    .link-related a {
+      color: var(--green);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
     .item-meta {
       display: flex;
       flex-wrap: wrap;
@@ -2148,7 +2161,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <span class="app-version" id="appVersion">日行一页 v1.4.0</span>
+        <span class="app-version" id="appVersion">日行一页 v1.5.0</span>
         <button class="text-btn" id="exportBtn">导出数据</button>
         <button class="text-btn" id="importBtn">导入数据</button>
         <button class="text-btn" id="importCourseBtn">导入课程表</button>
@@ -2236,7 +2249,7 @@
 
   <script>
     let STORAGE_KEY = "daypage_state_v1";
-    const APP_VERSION = "v1.4.0";
+    const APP_VERSION = "v1.5.0";
     const SUPABASE_URL = "https://bvekinuhcqwqgygskhzm.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_g-qMrtNSZV6iFmN79pV5Gw_OVFuDoXT";
     let SUPABASE_STATE_ID = "main";
@@ -2636,7 +2649,7 @@
         logs: Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [],
         schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
         checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
-        links: Array.isArray(parsed.links) ? parsed.links : [],
+        links: Array.isArray(parsed.links) ? parsed.links.map(normalizeLink) : [],
         meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
       };
     }
@@ -2653,6 +2666,17 @@
         ...log,
         images,
         imageUrl: images[0] || ""
+      };
+    }
+
+    function normalizeLink(link) {
+      return {
+        ...link,
+        url: link.url || "",
+        note: link.note || "",
+        date: link.date || null,
+        relatedUrls: Array.isArray(link.relatedUrls) ? link.relatedUrls.filter(Boolean) : [],
+        tags: Array.isArray(link.tags) ? link.tags : []
       };
     }
 
@@ -2796,7 +2820,7 @@
           logs: Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [],
           schedules: Array.isArray(parsed.schedules) ? parsed.schedules : [],
           checklists: Array.isArray(parsed.checklists) ? parsed.checklists : [],
-          links: Array.isArray(parsed.links) ? parsed.links : [],
+          links: Array.isArray(parsed.links) ? parsed.links.map(normalizeLink) : [],
           meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
         };
       } catch (error) {
@@ -3662,7 +3686,6 @@
           <div class="item-meta">
             <span>${item.date ? formatDate(item.date) : "长期有效"}</span>
             <span class="tag priority-${item.priority || "normal"}">${priorityLabel(item.priority)}</span>
-            ${item.parentVisible ? `<span class="tag">家长可见</span>` : ""}
           </div>
         </article>
       `;
@@ -3672,38 +3695,46 @@
       renderRoot.innerHTML = `
         <header class="topbar">
           <div>
-            <p class="page-kicker">Links</p>
-            <h1 class="page-title">收藏链接</h1>
+            <p class="page-kicker">Keep</p>
+            <h1 class="page-title">收藏</h1>
           </div>
-          <button class="primary-btn" data-open="link">＋ 添加链接</button>
+          <button class="primary-btn" data-open="link">＋ 添加收藏</button>
         </header>
         <div class="list">
           ${
             state.links.length
               ? state.links.map(linkItem).join("")
-              : `<div class="card"><div class="empty"><div><strong>还没有收藏链接</strong>可以保存常用网址。</div></div></div>`
+              : `<div class="card"><div class="empty"><div><strong>还没有收藏</strong>可以保存常用网址，也可以记录某个人或某件事。</div></div></div>`
           }
         </div>
       `;
     }
 
     function linkItem(item) {
+      const relatedUrls = Array.isArray(item.relatedUrls) ? item.relatedUrls.filter(Boolean) : [];
       return `
         <article class="item">
           <div class="item-main">
             <div style="min-width:0;">
               <h3 class="item-title">${escapeHtml(item.title)}</h3>
-              <p class="item-note">${escapeHtml(item.url)}</p>
+              ${item.note ? `<p class="item-note">${escapeHtml(item.note)}</p>` : ""}
+              ${item.url ? `<p class="item-note">${escapeHtml(item.url)}</p>` : ""}
+              ${relatedUrls.length ? `
+                <div class="link-related">
+                  ${relatedUrls.map((url) => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`).join("")}
+                </div>
+              ` : ""}
             </div>
             <div class="item-actions">
-              <a class="icon-btn" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">↗</a>
+              ${item.url ? `<a class="icon-btn" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">↗</a>` : ""}
               <button class="icon-btn" data-edit="link" data-id="${item.id}" aria-label="编辑">✎</button>
               <button class="icon-btn" data-delete="link" data-id="${item.id}" aria-label="删除">🗑</button>
             </div>
           </div>
           <div class="item-meta">
             <span class="tag">${escapeHtml(item.category || "其他")}</span>
-            ${item.parentVisible ? `<span class="tag">家长可见</span>` : ""}
+            ${item.date ? `<span>${escapeHtml(formatDate(item.date))}</span>` : ""}
+            ${(item.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
         </article>
       `;
@@ -4628,10 +4659,6 @@
               </select>
             </div>
           </div>
-          <label class="field" style="display:flex;align-items:center;gap:8px;flex-direction:row;">
-            <input type="checkbox" name="parentVisible" ${item.parentVisible ? "checked" : ""}>
-            <span>家长可见</span>
-          </label>
           <div class="dialog-actions">
             <button type="button" class="ghost-btn" data-close>取消</button>
             <button type="submit" class="primary-btn">保存事项</button>
@@ -4642,24 +4669,32 @@
       if (type === "link") {
         return `
           <div class="field">
-            <label for="linkTitle">标题</label>
-            <input id="linkTitle" name="title" required maxlength="80" value="${escapeHtml(item.title || "")}" placeholder="例如：学校教务系统">
+            <label for="linkTitle">名称</label>
+            <input id="linkTitle" name="title" required maxlength="80" value="${escapeHtml(item.title || "")}" placeholder="例如：学校教务系统，或李安杰">
           </div>
           <div class="field">
-            <label for="linkUrl">网址</label>
-            <input id="linkUrl" name="url" type="url" required value="${escapeHtml(item.url || "")}" placeholder="https://example.com">
+            <label for="linkUrl">主要网址（可选）</label>
+            <input id="linkUrl" name="url" type="url" value="${escapeHtml(item.url || "")}" placeholder="https://example.com">
           </div>
           <div class="field">
             <label for="linkCategory">分类</label>
-            <input id="linkCategory" name="category" value="${escapeHtml(item.category || "")}" placeholder="例如：学习、工具">
+            <input id="linkCategory" name="category" value="${escapeHtml(item.category || "")}" placeholder="例如：学习、工具、人物">
           </div>
-          <label class="field" style="display:flex;align-items:center;gap:8px;flex-direction:row;">
-            <input type="checkbox" name="parentVisible" ${item.parentVisible ? "checked" : ""}>
-            <span>家长可见</span>
-          </label>
+          <div class="field">
+            <label for="linkDate">相关日期（可选）</label>
+            <input id="linkDate" name="date" type="date" value="${escapeHtml(item.date || "")}">
+          </div>
+          <div class="field">
+            <label for="linkNote">备注</label>
+            <textarea id="linkNote" name="note" placeholder="可以写身份、说过的话、需要跟进的事，或这条收藏的用途。">${escapeHtml(item.note || "")}</textarea>
+          </div>
+          <div class="field">
+            <label for="linkRelatedUrls">相关链接（可选）</label>
+            <textarea id="linkRelatedUrls" name="relatedUrls" placeholder="每行一个网址">${escapeHtml((item.relatedUrls || []).join("\n"))}</textarea>
+          </div>
           <div class="dialog-actions">
             <button type="button" class="ghost-btn" data-close>取消</button>
-            <button type="submit" class="primary-btn">保存链接</button>
+            <button type="submit" class="primary-btn">保存收藏</button>
           </div>
         `;
       }
@@ -4828,7 +4863,6 @@
           note: data.get("note").trim(),
           date: data.get("date") || null,
           priority: data.get("priority") || "normal",
-          parentVisible: data.get("parentVisible") === "on",
           done: editing?.done || false,
           createdAt: editing?.createdAt || now,
           updatedAt: now
@@ -4842,16 +4876,26 @@
       }
 
       if (type === "link") {
+        const relatedUrls = data.get("relatedUrls")
+          .split(/\r?\n/)
+          .map((url) => url.trim())
+          .filter(Boolean);
         const item = {
           id: editing?.id || uid("link"),
           title: data.get("title").trim(),
           url: data.get("url").trim(),
           category: data.get("category").trim(),
-          parentVisible: data.get("parentVisible") === "on",
+          date: data.get("date") || null,
+          note: data.get("note").trim(),
+          relatedUrls,
+          tags: Array.isArray(editing?.tags) ? editing.tags : [],
           createdAt: editing?.createdAt || now,
           updatedAt: now
         };
-        if (!item.title || !item.url) return;
+        if (!item.title || (!item.url && !item.note && !item.relatedUrls.length)) {
+          showToast("请至少填写网址或备注");
+          return;
+        }
         if (editing) {
           state.links = state.links.map((entry) => entry.id === item.id ? item : entry);
         } else {
@@ -4884,7 +4928,7 @@
 
       closeDialog();
       saveState();
-      showToast(type === "goal" ? "目标已保存" : type === "plan" ? "计划已保存" : type === "schedule" ? "日程已保存" : type === "checklist" ? "事项已保存" : type === "link" ? "链接已保存" : "日志已保存");
+      showToast(type === "goal" ? "目标已保存" : type === "plan" ? "计划已保存" : type === "schedule" ? "日程已保存" : type === "checklist" ? "事项已保存" : type === "link" ? "收藏已保存" : "日志已保存");
     }
 
     function togglePlanStep(planId, stepId) {
@@ -5127,6 +5171,8 @@
               }))
             : [];
           state.schedules = Array.isArray(parsed.schedules) ? parsed.schedules : [];
+          state.checklists = Array.isArray(parsed.checklists) ? parsed.checklists : [];
+          state.links = Array.isArray(parsed.links) ? parsed.links.map(normalizeLink) : [];
           state.logs = Array.isArray(parsed.logs) ? parsed.logs.map(normalizeLog) : [];
           saveState();
           showToast("数据已导入");
